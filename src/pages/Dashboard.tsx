@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
-import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 
