@@ -99,6 +99,15 @@ export default function Dashboard() {
           setNextSession({ ...sessionData[0], agenda_count: count ?? 0 });
         }
       }
+
+      // Fetch recent notifications
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('id, subject, notification_type, read_at, created_at, project_id, session_id')
+        .eq('recipient_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (notifs) setRecentNotifications(notifs as any);
     };
     fetchData();
   }, [user, role]);
