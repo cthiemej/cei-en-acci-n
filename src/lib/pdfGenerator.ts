@@ -70,7 +70,7 @@ export async function generateActaAprobacion(projectId: string, userId: string) 
     generatedDate: now(),
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
   const path = `projects/${projectId}/acta_aprobacion_${Date.now()}.pdf`;
   await uploadAndRecord(blob, path, 'acta_aprobacion', projectId, null, userId);
   return blob;
