@@ -77,6 +77,58 @@ export type Database = {
           },
         ]
       }
+      generated_documents: {
+        Row: {
+          created_at: string | null
+          document_type: string
+          generated_by: string | null
+          id: string
+          project_id: string | null
+          session_id: string | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_type: string
+          generated_by?: string | null
+          id?: string
+          project_id?: string | null
+          session_id?: string | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string | null
+          document_type?: string
+          generated_by?: string | null
+          id?: string
+          project_id?: string | null
+          session_id?: string | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           confidentiality_signed: boolean | null
