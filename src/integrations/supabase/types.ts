@@ -280,6 +280,137 @@ export type Database = {
           },
         ]
       }
+      session_agenda_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          item_order: number
+          project_id: string | null
+          resolution: string | null
+          session_id: string
+          vote_result: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          item_order: number
+          project_id?: string | null
+          resolution?: string | null
+          session_id: string
+          vote_result?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          item_order?: number
+          project_id?: string | null
+          resolution?: string | null
+          session_id?: string
+          vote_result?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_agenda_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_agenda_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_attendees: {
+        Row: {
+          attended: boolean | null
+          id: string
+          member_id: string
+          session_id: string
+          signed: boolean | null
+        }
+        Insert: {
+          attended?: boolean | null
+          id?: string
+          member_id: string
+          session_id: string
+          signed?: boolean | null
+        }
+        Update: {
+          attended?: boolean | null
+          id?: string
+          member_id?: string
+          session_id?: string
+          signed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_attendees_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_attendees_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          minutes_summary: string | null
+          quorum_met: boolean | null
+          scheduled_date: string
+          session_number: number
+          session_type: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          minutes_summary?: string | null
+          quorum_met?: boolean | null
+          scheduled_date: string
+          session_number: number
+          session_type?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          minutes_summary?: string | null
+          quorum_met?: boolean | null
+          scheduled_date?: string
+          session_number?: number
+          session_type?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
