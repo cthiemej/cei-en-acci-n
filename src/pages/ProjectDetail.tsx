@@ -137,14 +137,34 @@ export default function ProjectDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const refreshGeneratedDocs = async () => {
+    if (!id) return;
+    const { data } = await supabase.from('generated_documents').select('*').eq('project_id', id).order('created_at', { ascending: false });
+    if (data) setGeneratedDocs(data as GeneratedDocRow[]);
+  };
+
   const handleStatusChange = async (newStatus: string, notes?: string) => {
-    if (!project) return;
+    if (!project || !user) return;
     setActionLoading(true);
     const { error } = await supabase.from('projects').update({ status: newStatus }).eq('id', project.id);
     if (error) { toast.error('Error: ' + error.message); } else {
       setProject({ ...project, status: newStatus });
       toast.success(`Estado cambiado.`);
       await refreshHistory();
+      // Auto-generate PDFs
+      try {
+        if (newStatus === 'recibido') await generateCertificadoRecepcion(project.id, user.id);
+        else if (newStatus === 'eximido') await generateCertificadoEximicion(project.id, user.id);
+        else if (newStatus === 'aprobado') await generateActaAprobacion(project.id, user.id);
+        else if (newStatus === 'rechazado') await generateActaRechazo(project.id, user.id);
+        if (['recibido', 'eximido', 'aprobado', 'rechazado'].includes(newStatus)) {
+          toast.success('Documento PDF generado automáticamente.');
+          await refreshGeneratedDocs();
+        }
+      } catch (pdfErr: any) {
+        console.error('Error generando PDF:', pdfErr);
+        toast.error('Error al generar PDF: ' + pdfErr.message);
+      }
     }
     setActionLoading(false);
   };
