@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      evaluations: {
+        Row: {
+          conflict_description: string | null
+          created_at: string | null
+          evaluator_id: string
+          general_observations: string | null
+          has_conflict_of_interest: boolean | null
+          id: string
+          informed_consent_review: string | null
+          project_id: string
+          recommendation: string | null
+          risk_benefit: string | null
+          scientific_validity: string | null
+          submitted_at: string | null
+          vulnerable_groups: string | null
+        }
+        Insert: {
+          conflict_description?: string | null
+          created_at?: string | null
+          evaluator_id: string
+          general_observations?: string | null
+          has_conflict_of_interest?: boolean | null
+          id?: string
+          informed_consent_review?: string | null
+          project_id: string
+          recommendation?: string | null
+          risk_benefit?: string | null
+          scientific_validity?: string | null
+          submitted_at?: string | null
+          vulnerable_groups?: string | null
+        }
+        Update: {
+          conflict_description?: string | null
+          created_at?: string | null
+          evaluator_id?: string
+          general_observations?: string | null
+          has_conflict_of_interest?: boolean | null
+          id?: string
+          informed_consent_review?: string | null
+          project_id?: string
+          recommendation?: string | null
+          risk_benefit?: string | null
+          scientific_validity?: string | null
+          submitted_at?: string | null
+          vulnerable_groups?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           confidentiality_signed: boolean | null
