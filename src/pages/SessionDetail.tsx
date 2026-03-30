@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { generateActaAprobacion, generateActaRechazo } from '@/lib/pdfGenerator';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
