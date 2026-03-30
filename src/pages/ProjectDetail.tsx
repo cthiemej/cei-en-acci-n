@@ -16,6 +16,7 @@ import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, Aler
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { generateCertificadoRecepcion, generateActaAprobacion, generateActaRechazo, generateCertificadoEximicion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
+import { notifyAntecedentesIncompletos, notifyEvaluadorAsignado, notifyEvaluacionCompletada, notifyResolucion, notifyEximicion } from '@/lib/notifications';
 
 const projectTypeLabels: Record<string, string> = { fondecyt: 'Fondecyt', fondo_interno: 'Fondo interno UDP', tesis_doctoral: 'Tesis doctoral', otro_concursable: 'Otro fondo concursable' };
 const trackLabels: Record<string, string> = { regular: 'Evaluación Regular', expedita: 'Evaluación Expedita', eximicion: 'Eximición' };
