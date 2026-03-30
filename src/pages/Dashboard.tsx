@@ -193,6 +193,26 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Recent notifications */}
+      {recentNotifications.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Bell className="h-5 w-5 text-primary" />Notificaciones Recientes</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentNotifications.map(n => (
+                <Link key={n.id} to={n.project_id ? `/projects/${n.project_id}` : n.session_id ? `/sessions/${n.session_id}` : '#'} className={cn('flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors', !n.read_at && 'bg-primary/5 border-primary/20')}>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-sm truncate', !n.read_at && 'font-semibold')}>{n.subject}</p>
+                    <p className="text-xs text-muted-foreground">{n.created_at ? new Date(n.created_at).toLocaleString('es-CL') : ''}</p>
+                  </div>
+                  {!n.read_at && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="shadow-sm">
         <CardHeader><CardTitle className="text-lg">Proyectos recientes</CardTitle></CardHeader>
         <CardContent>
