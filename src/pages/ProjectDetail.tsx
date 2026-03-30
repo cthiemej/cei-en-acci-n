@@ -184,6 +184,7 @@ export default function ProjectDetail() {
       setProject({ ...project, status: 'borrador' });
       toast.success('Proyecto devuelto al investigador.');
       await refreshHistory();
+      notifyAntecedentesIncompletos(project.id, project.code ?? '', project.title, project.principal_investigator_id, preRevisionNotes).catch(console.error);
     }
     setActionLoading(false);
   };
