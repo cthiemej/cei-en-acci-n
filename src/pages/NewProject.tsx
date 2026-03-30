@@ -159,6 +159,13 @@ export default function NewProject() {
         await uploadDocuments(data.id);
       }
 
+      // Auto-generate certificado de recepción
+      if (submit) {
+        try {
+          await generateCertificadoRecepcion(data.id, user.id);
+        } catch (pdfErr) { console.error('Error generando certificado:', pdfErr); }
+      }
+
       toast.success(submit ? 'Solicitud enviada exitosamente.' : 'Borrador guardado.');
       navigate(submit ? `/projects/${data.id}` : '/projects');
     } catch (err: any) {
