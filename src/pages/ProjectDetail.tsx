@@ -22,11 +22,13 @@ const trackLabels: Record<string, string> = { regular: 'Evaluación Regular', ex
 const docTypeLabels: Record<string, string> = { formato_revision: 'Formato de revisión', protocolo: 'Protocolo de investigación', cv_investigador: 'Currículum Vitae', consentimiento_informado: 'Consentimiento informado', material_reclutamiento: 'Material de reclutamiento', carta_compromiso: 'Carta de compromiso', otro: 'Otro' };
 const recommendationLabels: Record<string, string> = { aprobar: 'Aprobar', rechazar: 'Rechazar', solicitar_cambios: 'Solicitar cambios' };
 
-interface Project { id: string; code: string | null; title: string; abstract: string | null; status: string | null; project_type: string | null; funding_source: string | null; evaluation_track: string | null; involves_human_participants: boolean | null; uses_secondary_data_only: boolean | null; submitted_at: string | null; reception_deadline: string | null; review_deadline: string | null; created_at: string | null; updated_at: string | null; principal_investigator_id: string; }
+interface Project { id: string; code: string | null; title: string; abstract: string | null; status: string | null; project_type: string | null; funding_source: string | null; evaluation_track: string | null; involves_human_participants: boolean | null; uses_secondary_data_only: boolean | null; submitted_at: string | null; reception_deadline: string | null; review_deadline: string | null; created_at: string | null; updated_at: string | null; principal_investigator_id: string; resolution_summary: string | null; }
 interface DocRow { id: string; document_type: string; file_name: string; storage_path: string; version: number | null; created_at: string | null; }
 interface HistoryRow { id: string; old_status: string | null; new_status: string; created_at: string | null; changed_by: string | null; }
 interface EvalRow { id: string; project_id: string; evaluator_id: string; recommendation: string | null; scientific_validity: string | null; risk_benefit: string | null; informed_consent_review: string | null; vulnerable_groups: string | null; general_observations: string | null; has_conflict_of_interest: boolean; conflict_description: string | null; submitted_at: string | null; created_at: string | null; }
 interface EvaluatorProfile { id: string; full_name: string; email: string; }
+interface GeneratedDocRow { id: string; document_type: string; storage_path: string; created_at: string | null; }
+const genDocTypeLabels: Record<string, string> = { certificado_recepcion: 'Certificado de Recepción', acta_aprobacion: 'Acta de Aprobación', acta_rechazo: 'Acta de Rechazo', certificado_eximicion: 'Certificado de Eximición', acta_sesion: 'Acta de Sesión' };
 
 function addBusinessDays(date: Date, days: number): Date {
   const result = new Date(date);
