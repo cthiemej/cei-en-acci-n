@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { notifySesionConvocatoria } from '@/lib/notifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,10 @@ export default function Sessions() {
           await supabase.from('session_attendees').insert(attendees);
         }
       }
+
+      // Get fresh session data for notification
+      const { data: freshSession } = await supabase.from('sessions').select('session_number').eq('id', session.id).single();
+      notifySesionConvocatoria(session.id, freshSession?.session_number ?? 0, newType, new Date(newDate).toISOString()).catch(console.error);
 
       toast.success('Sesión creada exitosamente.');
       setShowCreate(false);

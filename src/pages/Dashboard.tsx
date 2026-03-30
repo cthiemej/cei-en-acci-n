@@ -3,9 +3,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
-import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle, Calendar } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle, Calendar, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ProjectRow {
   id: string;
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
   const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
+  const [recentNotifications, setRecentNotifications] = useState<{ id: string; subject: string; notification_type: string; read_at: string | null; created_at: string | null; project_id: string | null; session_id: string | null }[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -97,6 +99,15 @@ export default function Dashboard() {
           setNextSession({ ...sessionData[0], agenda_count: count ?? 0 });
         }
       }
+
+      // Fetch recent notifications
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('id, subject, notification_type, read_at, created_at, project_id, session_id')
+        .eq('recipient_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (notifs) setRecentNotifications(notifs as any);
     };
     fetchData();
   }, [user, role]);
@@ -175,6 +186,26 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <StatusBadge status={item.status ?? 'borrador'} />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent notifications */}
+      {recentNotifications.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Bell className="h-5 w-5 text-primary" />Notificaciones Recientes</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentNotifications.map(n => (
+                <Link key={n.id} to={n.project_id ? `/projects/${n.project_id}` : n.session_id ? `/sessions/${n.session_id}` : '#'} className={cn('flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors', !n.read_at && 'bg-primary/5 border-primary/20')}>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-sm truncate', !n.read_at && 'font-semibold')}>{n.subject}</p>
+                    <p className="text-xs text-muted-foreground">{n.created_at ? new Date(n.created_at).toLocaleString('es-CL') : ''}</p>
+                  </div>
+                  {!n.read_at && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
                 </Link>
               ))}
             </div>

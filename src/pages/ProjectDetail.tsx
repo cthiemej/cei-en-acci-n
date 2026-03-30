@@ -16,6 +16,7 @@ import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, Aler
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { generateCertificadoRecepcion, generateActaAprobacion, generateActaRechazo, generateCertificadoEximicion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
+import { notifyAntecedentesIncompletos, notifyEvaluadorAsignado, notifyEvaluacionCompletada, notifyResolucion, notifyEximicion } from '@/lib/notifications';
 
 const projectTypeLabels: Record<string, string> = { fondecyt: 'Fondecyt', fondo_interno: 'Fondo interno UDP', tesis_doctoral: 'Tesis doctoral', otro_concursable: 'Otro fondo concursable' };
 const trackLabels: Record<string, string> = { regular: 'Evaluación Regular', expedita: 'Evaluación Expedita', eximicion: 'Eximición' };
@@ -151,12 +152,12 @@ export default function ProjectDetail() {
       setProject({ ...project, status: newStatus });
       toast.success(`Estado cambiado.`);
       await refreshHistory();
-      // Auto-generate PDFs
+      // Auto-generate PDFs and notify
       try {
         if (newStatus === 'recibido') await generateCertificadoRecepcion(project.id, user.id);
-        else if (newStatus === 'eximido') await generateCertificadoEximicion(project.id, user.id);
-        else if (newStatus === 'aprobado') await generateActaAprobacion(project.id, user.id);
-        else if (newStatus === 'rechazado') await generateActaRechazo(project.id, user.id);
+        else if (newStatus === 'eximido') { await generateCertificadoEximicion(project.id, user.id); notifyEximicion(project.id, project.code ?? '', project.title, project.principal_investigator_id).catch(console.error); }
+        else if (newStatus === 'aprobado') { await generateActaAprobacion(project.id, user.id); notifyResolucion(project.id, project.code ?? '', project.title, project.principal_investigator_id, 'aprobado').catch(console.error); }
+        else if (newStatus === 'rechazado') { await generateActaRechazo(project.id, user.id); notifyResolucion(project.id, project.code ?? '', project.title, project.principal_investigator_id, 'rechazado').catch(console.error); }
         if (['recibido', 'eximido', 'aprobado', 'rechazado'].includes(newStatus)) {
           toast.success('Documento PDF generado automáticamente.');
           await refreshGeneratedDocs();
@@ -183,6 +184,7 @@ export default function ProjectDetail() {
       setProject({ ...project, status: 'borrador' });
       toast.success('Proyecto devuelto al investigador.');
       await refreshHistory();
+      notifyAntecedentesIncompletos(project.id, project.code ?? '', project.title, project.principal_investigator_id, preRevisionNotes).catch(console.error);
     }
     setActionLoading(false);
   };
@@ -207,6 +209,10 @@ export default function ProjectDetail() {
       setProject({ ...project, status: 'en_evaluacion', review_deadline: reviewDeadline });
       toast.success('Revisores asignados exitosamente.');
       await Promise.all([refreshHistory(), refreshEvaluations()]);
+      // Notify each evaluator
+      for (const evId of selectedEvaluators) {
+        notifyEvaluadorAsignado(project.id, project.code ?? '', project.title, evId).catch(console.error);
+      }
     } catch (err: any) { toast.error('Error: ' + err.message); }
     setActionLoading(false);
   };
@@ -236,6 +242,10 @@ export default function ProjectDetail() {
     if (error) { toast.error('Error: ' + error.message); } else {
       toast.success(submit ? 'Evaluación enviada.' : 'Borrador guardado.');
       await refreshEvaluations();
+      if (submit && project) {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+        notifyEvaluacionCompletada(project.id, project.code ?? '', profile?.full_name ?? '').catch(console.error);
+      }
     }
     setActionLoading(false);
   };

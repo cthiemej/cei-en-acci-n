@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const routeLabels: Record<string, string> = {
   '/dashboard': 'Panel',
@@ -34,10 +35,13 @@ export function AppLayout() {
                 <span className="text-foreground font-medium">{currentLabel}</span>
               </nav>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
-              <LogOut className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
+                <LogOut className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Button>
+            </div>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">
             <Outlet />
