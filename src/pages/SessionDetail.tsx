@@ -159,13 +159,18 @@ export default function SessionDetail() {
       const statusMap: Record<string, string> = { aprobado: 'aprobado', rechazado: 'rechazado', pendiente: 'pendiente', expedito: 'expedito' };
       if (statusMap[resolutionResult]) {
         await supabase.from('projects').update({ status: statusMap[resolutionResult], resolution_summary: resolutionText }).eq('id', item.project_id);
-        // Auto-generate PDF for approval/rejection
+        // Auto-generate PDF for approval/rejection and notify
         if (user && (resolutionResult === 'aprobado' || resolutionResult === 'rechazado')) {
           try {
             if (resolutionResult === 'aprobado') await generateActaAprobacion(item.project_id, user.id);
             else await generateActaRechazo(item.project_id, user.id);
             toast.success('Documento PDF generado automáticamente.');
           } catch (pdfErr: any) { console.error('Error generando PDF:', pdfErr); }
+        }
+        // Notify investigator of resolution
+        if (user && ['aprobado', 'rechazado', 'pendiente', 'expedito'].includes(resolutionResult)) {
+          const { data: proj } = await supabase.from('projects').select('principal_investigator_id, code, title').eq('id', item.project_id).single();
+          if (proj) notifyResolucion(item.project_id, proj.code ?? '', proj.title, proj.principal_investigator_id, resolutionResult).catch(console.error);
         }
       }
     }
