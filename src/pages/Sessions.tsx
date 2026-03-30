@@ -82,6 +82,10 @@ export default function Sessions() {
         }
       }
 
+      // Get fresh session data for notification
+      const { data: freshSession } = await supabase.from('sessions').select('session_number').eq('id', session.id).single();
+      notifySesionConvocatoria(session.id, freshSession?.session_number ?? 0, newType, new Date(newDate).toISOString()).catch(console.error);
+
       toast.success('Sesión creada exitosamente.');
       setShowCreate(false);
       setNewDate('');
