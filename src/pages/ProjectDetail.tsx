@@ -88,9 +88,10 @@ export default function ProjectDetail() {
         supabase.from('evaluations').select('*').eq('project_id', id),
         supabase.from('generated_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       ]);
-      if (projectRes.data) setProject(projectRes.data as Project);
+      if (projectRes.data) setProject(projectRes.data as any);
       if (docsRes.data) setDocs(docsRes.data as DocRow[]);
       if (historyRes.data) setHistory(historyRes.data as HistoryRow[]);
+      if (genDocsRes.data) setGeneratedDocs(genDocsRes.data as GeneratedDocRow[]);
       if (evalsRes.data) {
         setEvaluations(evalsRes.data as EvalRow[]);
         // Load own evaluation into form if evaluator
