@@ -394,10 +394,11 @@ export default function ProjectDetail() {
       )}
 
       <Tabs defaultValue="info" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="info">Información General</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
           <TabsTrigger value="evaluations">Evaluaciones{evaluations.length > 0 && ` (${evaluations.filter(e => e.submitted_at).length}/${evaluations.length})`}</TabsTrigger>
+          <TabsTrigger value="generated">Documentos Generados{generatedDocs.length > 0 && ` (${generatedDocs.length})`}</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
