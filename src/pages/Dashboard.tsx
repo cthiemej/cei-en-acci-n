@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
+  const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
