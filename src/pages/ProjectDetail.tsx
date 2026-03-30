@@ -209,6 +209,10 @@ export default function ProjectDetail() {
       setProject({ ...project, status: 'en_evaluacion', review_deadline: reviewDeadline });
       toast.success('Revisores asignados exitosamente.');
       await Promise.all([refreshHistory(), refreshEvaluations()]);
+      // Notify each evaluator
+      for (const evId of selectedEvaluators) {
+        notifyEvaluadorAsignado(project.id, project.code ?? '', project.title, evId).catch(console.error);
+      }
     } catch (err: any) { toast.error('Error: ' + err.message); }
     setActionLoading(false);
   };
