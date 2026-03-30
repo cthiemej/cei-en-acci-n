@@ -158,6 +158,14 @@ export default function SessionDetail() {
       const statusMap: Record<string, string> = { aprobado: 'aprobado', rechazado: 'rechazado', pendiente: 'pendiente', expedito: 'expedito' };
       if (statusMap[resolutionResult]) {
         await supabase.from('projects').update({ status: statusMap[resolutionResult], resolution_summary: resolutionText }).eq('id', item.project_id);
+        // Auto-generate PDF for approval/rejection
+        if (user && (resolutionResult === 'aprobado' || resolutionResult === 'rechazado')) {
+          try {
+            if (resolutionResult === 'aprobado') await generateActaAprobacion(item.project_id, user.id);
+            else await generateActaRechazo(item.project_id, user.id);
+            toast.success('Documento PDF generado automáticamente.');
+          } catch (pdfErr: any) { console.error('Error generando PDF:', pdfErr); }
+        }
       }
     }
     const { error } = await supabase.from('session_agenda_items').update(updateData).eq('id', showResolution);
