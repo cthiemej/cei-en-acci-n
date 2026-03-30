@@ -7,6 +7,7 @@ import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle, C
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { businessDaysRemaining } from '@/lib/businessDays';
 
 interface ProjectRow {
   id: string;
@@ -15,7 +16,9 @@ interface ProjectRow {
   status: string | null;
   updated_at: string | null;
   review_deadline: string | null;
+  reception_deadline: string | null;
   evaluation_track: string | null;
+  deadline_extended: boolean | null;
 }
 
 interface ActionProject extends ProjectRow {
@@ -23,11 +26,20 @@ interface ActionProject extends ProjectRow {
   actionColor: string;
 }
 
+interface DeadlineProject {
+  id: string;
+  code: string | null;
+  title: string;
+  remaining: number;
+  deadlineType: string;
+}
+
 export default function Dashboard() {
   const { role, user } = useAuth();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
+  const [deadlineAlerts, setDeadlineAlerts] = useState<DeadlineProject[]>([]);
   const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
   const [recentNotifications, setRecentNotifications] = useState<{ id: string; subject: string; notification_type: string; read_at: string | null; created_at: string | null; project_id: string | null; session_id: string | null }[]>([]);
 
@@ -36,7 +48,7 @@ export default function Dashboard() {
     const fetchData = async () => {
       const { data } = await supabase
         .from('projects')
-        .select('id, code, title, status, updated_at, review_deadline, evaluation_track')
+        .select('id, code, title, status, updated_at, review_deadline, reception_deadline, evaluation_track, deadline_extended')
         .order('updated_at', { ascending: false })
         .limit(50);
 
@@ -51,9 +63,10 @@ export default function Dashboard() {
         asignado: data.filter(p => p.status === 'asignado').length,
       });
 
-      // Build action items for secretario/presidente
+      // Build action items + deadline alerts for secretario/presidente
       if (role === 'secretario' || role === 'presidente' || role === 'admin') {
         const items: ActionProject[] = [];
+        const alerts: DeadlineProject[] = [];
 
         data.filter(p => p.status === 'recibido').forEach(p => {
           items.push({ ...p, actionLabel: 'Pendiente de pre-revisión', actionColor: 'text-warning' });
@@ -63,13 +76,16 @@ export default function Dashboard() {
           items.push({ ...p, actionLabel: 'Pendiente de asignar revisores', actionColor: 'text-info' });
         });
 
-        // Check for deadline warnings (within 5 days)
-        const fiveDaysFromNow = new Date();
-        fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
-        data.filter(p => p.status === 'en_evaluacion' && p.review_deadline).forEach(p => {
-          const deadline = new Date(p.review_deadline!);
-          if (deadline <= fiveDaysFromNow) {
-            items.push({ ...p, actionLabel: `Plazo vence: ${deadline.toLocaleDateString('es-CL')}`, actionColor: 'text-destructive' });
+        // Deadline alerts
+        const activeStatuses = ['recibido', 'en_pre_revision', 'asignado', 'en_evaluacion', 'en_sesion'];
+        data.filter(p => activeStatuses.includes(p.status ?? '')).forEach(p => {
+          const preStatuses = ['recibido', 'en_pre_revision'];
+          const deadline = preStatuses.includes(p.status ?? '') ? p.reception_deadline : p.review_deadline;
+          if (!deadline) return;
+          const remaining = businessDaysRemaining(new Date(deadline));
+          const deadlineType = preStatuses.includes(p.status ?? '') ? 'Pre-revisión' : 'Informe';
+          if (remaining < 10) {
+            alerts.push({ id: p.id, code: p.code, title: p.title, remaining, deadlineType });
           }
         });
 
@@ -83,6 +99,7 @@ export default function Dashboard() {
         }
 
         setActionItems(items);
+        setDeadlineAlerts(alerts.sort((a, b) => a.remaining - b.remaining));
       }
 
       // Fetch next scheduled session
@@ -166,6 +183,33 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Link>
+      )}
+
+      {/* Deadline alerts for secretario/presidente */}
+      {deadlineAlerts.length > 0 && (
+        <Card className="shadow-sm border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-destructive" />Alertas de Plazo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {deadlineAlerts.map((item) => (
+                <Link key={item.id} to={`/projects/${item.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-muted-foreground font-mono">{item.code}</span>
+                      <span className="text-xs text-muted-foreground">{item.deadlineType}</span>
+                    </div>
+                  </div>
+                  <span className={cn('text-xs font-semibold whitespace-nowrap ml-2', item.remaining < 0 ? 'text-destructive' : item.remaining <= 5 ? 'text-warning' : 'text-muted-foreground')}>
+                    {item.remaining < 0 ? `Vencido (${Math.abs(item.remaining)}d)` : `${item.remaining}d háb.`}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Action items for secretario/presidente */}
