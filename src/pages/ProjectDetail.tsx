@@ -251,7 +251,51 @@ export default function ProjectDetail() {
             {actionLoading ? 'Procesando...' : 'Pasar a Pre-revisión'}
           </Button>
         )}
+        {canManage && project.status === 'en_evaluacion' && allEvalsSubmitted && (
+          <Button onClick={async () => {
+            const { data } = await supabase.from('sessions').select('id, session_number, scheduled_date').eq('status', 'programada').order('scheduled_date');
+            if (data) setAvailableSessions(data);
+            setShowAddToSession(true);
+          }} variant="secondary" disabled={actionLoading}>
+            <CalendarPlus className="h-4 w-4 mr-2" />Agregar a Sesión
+          </Button>
+        )}
       </div>
+
+      {/* Add to session dialog */}
+      <Dialog open={showAddToSession} onOpenChange={setShowAddToSession}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Agregar proyecto a sesión</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar sesión" /></SelectTrigger>
+              <SelectContent>
+                {availableSessions.map(s => (
+                  <SelectItem key={s.id} value={s.id}>Sesión #{s.session_number} — {new Date(s.scheduled_date).toLocaleDateString('es-CL')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddToSession(false)}>Cancelar</Button>
+            <Button disabled={!selectedSessionId || actionLoading} onClick={async () => {
+              setActionLoading(true);
+              const { count } = await supabase.from('session_agenda_items').select('id', { count: 'exact', head: true }).eq('session_id', selectedSessionId);
+              const { error } = await supabase.from('session_agenda_items').insert({
+                session_id: selectedSessionId, project_id: project.id, item_order: (count ?? 0) + 1, description: `Evaluación: ${project.title}`,
+              });
+              if (!error) {
+                await supabase.from('projects').update({ status: 'en_sesion' }).eq('id', project.id);
+                setProject({ ...project, status: 'en_sesion' });
+                toast.success('Proyecto agregado a la sesión.');
+                setShowAddToSession(false);
+                await refreshHistory();
+              } else { toast.error('Error: ' + error.message); }
+              setActionLoading(false);
+            }}>{actionLoading ? 'Agregando...' : 'Agregar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pre-revision panel */}
       {isSecretario && project.status === 'en_pre_revision' && (
