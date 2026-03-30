@@ -102,7 +102,7 @@ export async function generateActaRechazo(projectId: string, userId: string) {
     generatedDate: now(),
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
   const path = `projects/${projectId}/acta_rechazo_${Date.now()}.pdf`;
   await uploadAndRecord(blob, path, 'acta_rechazo', projectId, null, userId);
   return blob;
