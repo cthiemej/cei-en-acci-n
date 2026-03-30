@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Check, Upload, FileText, AlertCircle, Info, ChevronLeft, ChevronRight, Send, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateCertificadoRecepcion } from '@/lib/pdfGenerator';
+import { notifyProjectReceived } from '@/lib/notifications';
 
 const STEPS = ['Datos del Proyecto', 'Clasificación Ética', 'Documentos', 'Revisión y Envío'];
 
