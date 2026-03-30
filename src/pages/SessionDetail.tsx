@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Square, CheckCircle, XCircle, Plus, Vote } from 'lucide-react';
+import { ArrowLeft, Play, Square, CheckCircle, XCircle, Plus, Vote, FileDown, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateActaSesion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
 
 interface Session { id: string; session_number: number; session_type: string; scheduled_date: string; status: string; quorum_met: boolean; minutes_summary: string | null; created_by: string | null; }
 interface Attendee { id: string; session_id: string; member_id: string; attended: boolean; signed: boolean; profile?: { full_name: string; email: string }; }
