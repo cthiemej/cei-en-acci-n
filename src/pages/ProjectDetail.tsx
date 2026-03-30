@@ -81,11 +81,12 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (!id) return;
     const fetchAll = async () => {
-      const [projectRes, docsRes, historyRes, evalsRes] = await Promise.all([
+      const [projectRes, docsRes, historyRes, evalsRes, genDocsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('id', id).single(),
         supabase.from('project_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
         supabase.from('project_status_history').select('*').eq('project_id', id).order('created_at', { ascending: true }),
         supabase.from('evaluations').select('*').eq('project_id', id),
+        supabase.from('generated_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       ]);
       if (projectRes.data) setProject(projectRes.data as Project);
       if (docsRes.data) setDocs(docsRes.data as DocRow[]);
