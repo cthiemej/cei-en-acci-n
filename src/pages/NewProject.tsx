@@ -137,6 +137,9 @@ export default function NewProject() {
         projectData.submitted_at = new Date().toISOString();
         projectData.evaluation_track = trackInfo.track;
         projectData.reception_deadline = addBusinessDays(new Date(), 5).toISOString();
+        if (trackInfo.track === 'eximicion') {
+          projectData.review_deadline = addBusinessDays(new Date(), 15).toISOString();
+        }
       }
 
       const { data, error } = await supabase

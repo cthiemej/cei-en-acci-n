@@ -8,7 +8,9 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, ArrowUpDown } from 'lucide-react';
+import { businessDaysRemaining } from '@/lib/businessDays';
+import { cn } from '@/lib/utils';
 
 interface ProjectRow {
   id: string;
@@ -18,6 +20,9 @@ interface ProjectRow {
   project_type: string | null;
   submitted_at: string | null;
   updated_at: string | null;
+  review_deadline: string | null;
+  reception_deadline: string | null;
+  deadline_extended: boolean | null;
 }
 
 const projectTypeLabels: Record<string, string> = {
@@ -27,6 +32,27 @@ const projectTypeLabels: Record<string, string> = {
   otro_concursable: 'Otro concursable',
 };
 
+function getActiveDeadline(p: ProjectRow): string | null {
+  const preStatuses = ['recibido', 'en_pre_revision'];
+  if (preStatuses.includes(p.status ?? '')) return p.reception_deadline;
+  return p.review_deadline;
+}
+
+function DeadlineBadge({ project }: { project: ProjectRow }) {
+  const deadline = getActiveDeadline(project);
+  if (!deadline) return <span className="text-muted-foreground">-</span>;
+  const remaining = businessDaysRemaining(new Date(deadline));
+  const dateStr = new Date(deadline).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' });
+
+  if (remaining < 0) {
+    return <span className="text-xs font-medium text-destructive">Vencido ({dateStr})</span>;
+  }
+  if (remaining <= 5) {
+    return <span className="text-xs font-medium text-warning">{remaining}d háb. ({dateStr})</span>;
+  }
+  return <span className="text-xs text-muted-foreground">{remaining}d háb. ({dateStr})</span>;
+}
+
 export default function Projects() {
   const { role } = useAuth();
   const navigate = useNavigate();
@@ -34,12 +60,13 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [sortByDeadline, setSortByDeadline] = useState(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
       let query = supabase
         .from('projects')
-        .select('id, code, title, status, project_type, submitted_at, updated_at')
+        .select('id, code, title, status, project_type, submitted_at, updated_at, review_deadline, reception_deadline, deadline_extended')
         .order('updated_at', { ascending: false });
 
       if (statusFilter !== 'all') query = query.eq('status', statusFilter);
@@ -51,11 +78,22 @@ export default function Projects() {
     fetchProjects();
   }, [statusFilter, typeFilter]);
 
-  const filtered = projects.filter((p) => {
+  let filtered = projects.filter((p) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return p.title.toLowerCase().includes(q) || (p.code ?? '').toLowerCase().includes(q);
   });
+
+  if (sortByDeadline) {
+    filtered = [...filtered].sort((a, b) => {
+      const da = getActiveDeadline(a);
+      const db = getActiveDeadline(b);
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return new Date(da).getTime() - new Date(db).getTime();
+    });
+  }
 
   const showNewButton = role === 'investigador' || role === 'secretario' || role === 'admin';
 
@@ -124,7 +162,9 @@ export default function Projects() {
                     <TableHead>Título</TableHead>
                     <TableHead className="hidden md:table-cell">Tipo</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead className="hidden sm:table-cell">Fecha envío</TableHead>
+                    <TableHead className="hidden sm:table-cell cursor-pointer" onClick={() => setSortByDeadline(!sortByDeadline)}>
+                      <span className="flex items-center gap-1">Plazo <ArrowUpDown className="h-3 w-3" /></span>
+                    </TableHead>
                     <TableHead className="hidden lg:table-cell">Actualización</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -137,8 +177,8 @@ export default function Projects() {
                         {projectTypeLabels[project.project_type ?? ''] ?? '-'}
                       </TableCell>
                       <TableCell><StatusBadge status={project.status ?? 'borrador'} /></TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                        {project.submitted_at ? new Date(project.submitted_at).toLocaleDateString('es-CL') : '-'}
+                      <TableCell className="hidden sm:table-cell">
+                        <DeadlineBadge project={project} />
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
                         {project.updated_at ? new Date(project.updated_at).toLocaleDateString('es-CL') : '-'}
