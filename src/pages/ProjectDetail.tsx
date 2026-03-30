@@ -56,6 +56,11 @@ export default function ProjectDetail() {
   // Evaluator form state
   const [evalForm, setEvalForm] = useState({ scientific_validity: '', risk_benefit: '', informed_consent_review: '', vulnerable_groups: '', general_observations: '', recommendation: '', has_conflict_of_interest: false, conflict_description: '' });
 
+  // Add to session state
+  const [showAddToSession, setShowAddToSession] = useState(false);
+  const [availableSessions, setAvailableSessions] = useState<{ id: string; session_number: number; scheduled_date: string }[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+
   const refreshHistory = async () => {
     if (!id) return;
     const { data } = await supabase.from('project_status_history').select('*').eq('project_id', id).order('created_at', { ascending: true });
