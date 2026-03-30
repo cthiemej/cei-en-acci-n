@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus, FileDown, Loader2 } from 'lucide-react';
+import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus, FileDown, Loader2, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { generateCertificadoRecepcion, generateActaAprobacion, generateActaRechazo, generateCertificadoEximicion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
