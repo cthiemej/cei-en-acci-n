@@ -45,8 +45,10 @@ export default function ProjectDetail() {
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [evaluations, setEvaluations] = useState<EvalRow[]>([]);
+  const [generatedDocs, setGeneratedDocs] = useState<GeneratedDocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Pre-revision state
   const [docChecks, setDocChecks] = useState<Record<string, boolean>>({});
