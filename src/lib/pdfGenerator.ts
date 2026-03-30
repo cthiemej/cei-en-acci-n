@@ -123,7 +123,7 @@ export async function generateCertificadoEximicion(projectId: string, userId: st
     generatedDate: now(),
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
   const path = `projects/${projectId}/certificado_eximicion_${Date.now()}.pdf`;
   await uploadAndRecord(blob, path, 'certificado_eximicion', projectId, null, userId);
   return blob;
