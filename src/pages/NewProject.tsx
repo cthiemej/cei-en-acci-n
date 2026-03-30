@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Check, Upload, FileText, AlertCircle, Info, ChevronLeft, ChevronRight, Send, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateCertificadoRecepcion } from '@/lib/pdfGenerator';
 
 const STEPS = ['Datos del Proyecto', 'Clasificación Ética', 'Documentos', 'Revisión y Envío'];
 
