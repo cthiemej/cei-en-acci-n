@@ -340,6 +340,28 @@ export default function SessionDetail() {
                     <Button onClick={handleSaveMinutes} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar Acta'}</Button>
                   </div>
                 )}
+                <div className="flex gap-3">
+                  {generatedActa ? (
+                    <Button variant="outline" onClick={() => downloadGeneratedDoc(generatedActa.storage_path, `acta_sesion_${session.session_number}.pdf`)}>
+                      <Download className="h-4 w-4 mr-2" />Descargar Acta PDF
+                    </Button>
+                  ) : canManage && (
+                    <Button variant="outline" disabled={pdfLoading} onClick={async () => {
+                      if (!user) return;
+                      setPdfLoading(true);
+                      try {
+                        await generateActaSesion(session.id, user.id);
+                        toast.success('Acta PDF generada.');
+                        const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', session.id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+                        if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+                      } catch (err: any) { toast.error('Error: ' + err.message); }
+                      setPdfLoading(false);
+                    }}>
+                      {pdfLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                      {pdfLoading ? 'Generando...' : 'Generar Acta PDF'}
+                    </Button>
+                  )}
+                </div>
                 <div className="rounded-lg border p-6 space-y-4 text-sm">
                   <div className="text-center border-b pb-4">
                     <h2 className="font-bold text-lg">Acta de Sesión {session.session_type} #{session.session_number}</h2>
