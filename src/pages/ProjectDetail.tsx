@@ -152,12 +152,12 @@ export default function ProjectDetail() {
       setProject({ ...project, status: newStatus });
       toast.success(`Estado cambiado.`);
       await refreshHistory();
-      // Auto-generate PDFs
+      // Auto-generate PDFs and notify
       try {
         if (newStatus === 'recibido') await generateCertificadoRecepcion(project.id, user.id);
-        else if (newStatus === 'eximido') await generateCertificadoEximicion(project.id, user.id);
-        else if (newStatus === 'aprobado') await generateActaAprobacion(project.id, user.id);
-        else if (newStatus === 'rechazado') await generateActaRechazo(project.id, user.id);
+        else if (newStatus === 'eximido') { await generateCertificadoEximicion(project.id, user.id); notifyEximicion(project.id, project.code ?? '', project.title, project.principal_investigator_id).catch(console.error); }
+        else if (newStatus === 'aprobado') { await generateActaAprobacion(project.id, user.id); notifyResolucion(project.id, project.code ?? '', project.title, project.principal_investigator_id, 'aprobado').catch(console.error); }
+        else if (newStatus === 'rechazado') { await generateActaRechazo(project.id, user.id); notifyResolucion(project.id, project.code ?? '', project.title, project.principal_investigator_id, 'rechazado').catch(console.error); }
         if (['recibido', 'eximido', 'aprobado', 'rechazado'].includes(newStatus)) {
           toast.success('Documento PDF generado automáticamente.');
           await refreshGeneratedDocs();
