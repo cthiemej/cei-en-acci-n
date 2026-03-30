@@ -16,6 +16,9 @@ import NewProject from "./pages/NewProject.tsx";
 import ProjectDetail from "./pages/ProjectDetail.tsx";
 import Sessions from "./pages/Sessions.tsx";
 import SessionDetail from "./pages/SessionDetail.tsx";
+import AdminUsers from "./pages/AdminUsers.tsx";
+import AdminReports from "./pages/AdminReports.tsx";
+import AdminAudit from "./pages/AdminAudit.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -39,8 +42,9 @@ const App = () => (
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/sessions/:id" element={<SessionDetail />} />
-              <Route path="/users" element={<div className="text-muted-foreground">Usuarios — Próximamente</div>} />
-              <Route path="/reports" element={<div className="text-muted-foreground">Reportes — Próximamente</div>} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/audit" element={<AdminAudit />} />
               <Route path="/assign-reviewers" element={<div className="text-muted-foreground">Asignar Revisores — Próximamente</div>} />
             </Route>
             <Route path="*" element={<NotFound />} />

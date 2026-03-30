@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut,
+  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, Shield,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,10 +34,11 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   admin: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Usuarios', url: '/users', icon: Users },
     { title: 'Todos los Proyectos', url: '/projects', icon: FolderOpen },
     { title: 'Sesiones', url: '/sessions', icon: Calendar },
-    { title: 'Reportes', url: '/reports', icon: BarChart3 },
+    { title: 'Usuarios', url: '/admin/users', icon: Users },
+    { title: 'Reportes', url: '/admin/reports', icon: BarChart3 },
+    { title: 'Auditoría', url: '/admin/audit', icon: Shield },
   ],
 };
 
