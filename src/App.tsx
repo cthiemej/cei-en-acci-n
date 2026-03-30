@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Projects from "./pages/Projects.tsx";
 import NewProject from "./pages/NewProject.tsx";
+import ProjectDetail from "./pages/ProjectDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
