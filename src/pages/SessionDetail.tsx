@@ -90,12 +90,20 @@ export default function SessionDetail() {
   useEffect(() => { fetchAll(); }, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!session) return;
+    if (!session || !user) return;
     setActionLoading(true);
     const { error } = await supabase.from('sessions').update({ status: newStatus }).eq('id', session.id);
     if (error) { toast.error('Error: ' + error.message); } else {
       setSession({ ...session, status: newStatus });
       toast.success('Estado de sesión actualizado.');
+      if (newStatus === 'finalizada') {
+        try {
+          await generateActaSesion(session.id, user.id);
+          toast.success('Acta de sesión PDF generada automáticamente.');
+          const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', session.id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+          if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+        } catch (pdfErr: any) { console.error('Error generando acta:', pdfErr); toast.error('Error generando acta PDF.'); }
+      }
     }
     setActionLoading(false);
   };
