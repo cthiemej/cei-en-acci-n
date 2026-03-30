@@ -53,6 +53,99 @@ export type Database = {
         }
         Relationships: []
       }
+      project_documents: {
+        Row: {
+          created_at: string | null
+          document_type: string
+          file_name: string
+          id: string
+          project_id: string
+          storage_path: string
+          uploaded_by: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_type: string
+          file_name: string
+          id?: string
+          project_id: string
+          storage_path: string
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          document_type?: string
+          file_name?: string
+          id?: string
+          project_id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+          project_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+          project_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_status_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           abstract: string | null
