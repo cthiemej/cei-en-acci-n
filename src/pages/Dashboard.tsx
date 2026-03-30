@@ -82,6 +82,21 @@ export default function Dashboard() {
 
         setActionItems(items);
       }
+
+      // Fetch next scheduled session
+      if (role !== 'investigador') {
+        const { data: sessionData } = await supabase
+          .from('sessions')
+          .select('id, session_number, scheduled_date')
+          .eq('status', 'programada')
+          .gte('scheduled_date', new Date().toISOString())
+          .order('scheduled_date')
+          .limit(1);
+        if (sessionData && sessionData.length > 0) {
+          const { count } = await supabase.from('session_agenda_items').select('id', { count: 'exact', head: true }).eq('session_id', sessionData[0].id);
+          setNextSession({ ...sessionData[0], agenda_count: count ?? 0 });
+        }
+      }
     };
     fetchData();
   }, [user, role]);
