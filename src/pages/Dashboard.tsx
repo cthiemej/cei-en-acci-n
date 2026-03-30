@@ -140,6 +140,23 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Next session card */}
+      {nextSession && (
+        <Link to={`/sessions/${nextSession.id}`}>
+          <Card className="shadow-sm border-info/30 hover:bg-muted/30 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Sesión</CardTitle>
+              <Calendar className="h-5 w-5 text-info" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-bold">Sesión #{nextSession.session_number}</p>
+              <p className="text-sm text-muted-foreground">{new Date(nextSession.scheduled_date).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-xs text-muted-foreground mt-1">{nextSession.agenda_count} punto(s) en tabla</p>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
       {/* Action items for secretario/presidente */}
       {actionItems.length > 0 && (
         <Card className="shadow-sm border-warning/30">
