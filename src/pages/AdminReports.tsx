@@ -79,8 +79,6 @@ export default function AdminReports() {
     fetch();
   }, []);
 
-  if (role !== 'admin') return <div className="text-center py-16 text-muted-foreground">Acceso denegado.</div>;
-
   const filtered = useMemo(() => {
     return projects.filter(p => {
       const d = p.submitted_at ? new Date(p.submitted_at) : null;
@@ -92,6 +90,8 @@ export default function AdminReports() {
   }, [projects, year, dateFrom, dateTo]);
 
   const profileMap = useMemo(() => new Map(profiles.map(p => [p.id, p])), [profiles]);
+
+  if (role !== 'admin') return <div className="text-center py-16 text-muted-foreground">Acceso denegado.</div>;
 
   // Stats
   const resolved = filtered.filter(p => ['aprobado', 'rechazado', 'eximido'].includes(p.status ?? ''));
