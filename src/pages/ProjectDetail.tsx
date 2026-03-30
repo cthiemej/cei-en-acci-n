@@ -263,11 +263,35 @@ export default function ProjectDetail() {
   const requiredEvals = project.evaluation_track === 'expedita' ? 1 : 2;
   const deadlineWarning = project.reception_deadline && new Date(project.reception_deadline) < new Date();
 
+  // Prórroga handler
+  const handleProrroga = async () => {
+    if (!project || !user || !project.review_deadline) return;
+    setActionLoading(true);
+    const newDeadline = addBusinessDays(new Date(project.review_deadline), 20).toISOString();
+    const { error } = await supabase.from('projects').update({ review_deadline: newDeadline, deadline_extended: true }).eq('id', project.id);
+    if (error) { toast.error('Error: ' + error.message); } else {
+      setProject({ ...project, review_deadline: newDeadline, deadline_extended: true });
+      toast.success('Prórroga activada. Nuevo plazo: ' + new Date(newDeadline).toLocaleDateString('es-CL'));
+      // Insert history note
+      await supabase.from('project_status_history').insert({ project_id: project.id, old_status: project.status, new_status: project.status!, notes: 'Prórroga activada', changed_by: user.id } as any);
+      await refreshHistory();
+    }
+    setActionLoading(false);
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate('/projects')} className="text-muted-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Volver a proyectos
       </Button>
+
+      <DeadlineAlert
+        submittedAt={project.submitted_at}
+        receptionDeadline={project.reception_deadline}
+        reviewDeadline={project.review_deadline}
+        deadlineExtended={project.deadline_extended ?? false}
+        status={project.status}
+      />
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="space-y-1">
@@ -279,20 +303,27 @@ export default function ProjectDetail() {
           </div>
           <h1 className="text-2xl font-bold text-foreground">{project.title}</h1>
         </div>
-        {canManage && project.status === 'recibido' && (
-          <Button onClick={() => handleStatusChange('en_pre_revision')} disabled={actionLoading}>
-            {actionLoading ? 'Procesando...' : 'Pasar a Pre-revisión'}
-          </Button>
-        )}
-        {canManage && project.status === 'en_evaluacion' && allEvalsSubmitted && (
-          <Button onClick={async () => {
-            const { data } = await supabase.from('sessions').select('id, session_number, scheduled_date').eq('status', 'programada').order('scheduled_date');
-            if (data) setAvailableSessions(data);
-            setShowAddToSession(true);
-          }} variant="secondary" disabled={actionLoading}>
-            <CalendarPlus className="h-4 w-4 mr-2" />Agregar a Sesión
-          </Button>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          {isPresidente && project.review_deadline && !project.deadline_extended && ['en_evaluacion', 'en_sesion'].includes(project.status ?? '') && (
+            <Button variant="outline" onClick={handleProrroga} disabled={actionLoading}>
+              <Clock className="h-4 w-4 mr-2" />Activar Prórroga
+            </Button>
+          )}
+          {canManage && project.status === 'recibido' && (
+            <Button onClick={() => handleStatusChange('en_pre_revision')} disabled={actionLoading}>
+              {actionLoading ? 'Procesando...' : 'Pasar a Pre-revisión'}
+            </Button>
+          )}
+          {canManage && project.status === 'en_evaluacion' && allEvalsSubmitted && (
+            <Button onClick={async () => {
+              const { data } = await supabase.from('sessions').select('id, session_number, scheduled_date').eq('status', 'programada').order('scheduled_date');
+              if (data) setAvailableSessions(data);
+              setShowAddToSession(true);
+            }} variant="secondary" disabled={actionLoading}>
+              <CalendarPlus className="h-4 w-4 mr-2" />Agregar a Sesión
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Add to session dialog */}
