@@ -37,7 +37,7 @@ export async function generateCertificadoRecepcion(projectId: string, userId: st
     generatedDate: now(),
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
   const path = `projects/${projectId}/certificado_recepcion_${Date.now()}.pdf`;
   await uploadAndRecord(blob, path, 'certificado_recepcion', projectId, null, userId);
   return blob;
