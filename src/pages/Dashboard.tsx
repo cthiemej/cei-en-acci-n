@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
-import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, FolderOpen, AlertTriangle, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 
@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
+  const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -81,6 +82,21 @@ export default function Dashboard() {
 
         setActionItems(items);
       }
+
+      // Fetch next scheduled session
+      if (role !== 'investigador') {
+        const { data: sessionData } = await supabase
+          .from('sessions')
+          .select('id, session_number, scheduled_date')
+          .eq('status', 'programada')
+          .gte('scheduled_date', new Date().toISOString())
+          .order('scheduled_date')
+          .limit(1);
+        if (sessionData && sessionData.length > 0) {
+          const { count } = await supabase.from('session_agenda_items').select('id', { count: 'exact', head: true }).eq('session_id', sessionData[0].id);
+          setNextSession({ ...sessionData[0], agenda_count: count ?? 0 });
+        }
+      }
     };
     fetchData();
   }, [user, role]);
@@ -123,6 +139,23 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Next session card */}
+      {nextSession && (
+        <Link to={`/sessions/${nextSession.id}`}>
+          <Card className="shadow-sm border-info/30 hover:bg-muted/30 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Sesión</CardTitle>
+              <Calendar className="h-5 w-5 text-info" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-bold">Sesión #{nextSession.session_number}</p>
+              <p className="text-sm text-muted-foreground">{new Date(nextSession.scheduled_date).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="text-xs text-muted-foreground mt-1">{nextSession.agenda_count} punto(s) en tabla</p>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {/* Action items for secretario/presidente */}
       {actionItems.length > 0 && (

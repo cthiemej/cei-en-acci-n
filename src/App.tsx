@@ -14,6 +14,8 @@ import Dashboard from "./pages/Dashboard.tsx";
 import Projects from "./pages/Projects.tsx";
 import NewProject from "./pages/NewProject.tsx";
 import ProjectDetail from "./pages/ProjectDetail.tsx";
+import Sessions from "./pages/Sessions.tsx";
+import SessionDetail from "./pages/SessionDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,7 +37,8 @@ const App = () => (
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/new" element={<NewProject />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/sessions" element={<div className="text-muted-foreground">Sesiones — Próximamente</div>} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/sessions/:id" element={<SessionDetail />} />
               <Route path="/users" element={<div className="text-muted-foreground">Usuarios — Próximamente</div>} />
               <Route path="/reports" element={<div className="text-muted-foreground">Reportes — Próximamente</div>} />
               <Route path="/assign-reviewers" element={<div className="text-muted-foreground">Asignar Revisores — Próximamente</div>} />

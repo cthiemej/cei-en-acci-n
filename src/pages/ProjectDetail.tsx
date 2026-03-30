@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus } from 'lucide-react';
+import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 const projectTypeLabels: Record<string, string> = { fondecyt: 'Fondecyt', fondo_interno: 'Fondo interno UDP', tesis_doctoral: 'Tesis doctoral', otro_concursable: 'Otro fondo concursable' };
@@ -54,6 +55,11 @@ export default function ProjectDetail() {
 
   // Evaluator form state
   const [evalForm, setEvalForm] = useState({ scientific_validity: '', risk_benefit: '', informed_consent_review: '', vulnerable_groups: '', general_observations: '', recommendation: '', has_conflict_of_interest: false, conflict_description: '' });
+
+  // Add to session state
+  const [showAddToSession, setShowAddToSession] = useState(false);
+  const [availableSessions, setAvailableSessions] = useState<{ id: string; session_number: number; scheduled_date: string }[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
 
   const refreshHistory = async () => {
     if (!id) return;
@@ -245,7 +251,51 @@ export default function ProjectDetail() {
             {actionLoading ? 'Procesando...' : 'Pasar a Pre-revisión'}
           </Button>
         )}
+        {canManage && project.status === 'en_evaluacion' && allEvalsSubmitted && (
+          <Button onClick={async () => {
+            const { data } = await supabase.from('sessions').select('id, session_number, scheduled_date').eq('status', 'programada').order('scheduled_date');
+            if (data) setAvailableSessions(data);
+            setShowAddToSession(true);
+          }} variant="secondary" disabled={actionLoading}>
+            <CalendarPlus className="h-4 w-4 mr-2" />Agregar a Sesión
+          </Button>
+        )}
       </div>
+
+      {/* Add to session dialog */}
+      <Dialog open={showAddToSession} onOpenChange={setShowAddToSession}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Agregar proyecto a sesión</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar sesión" /></SelectTrigger>
+              <SelectContent>
+                {availableSessions.map(s => (
+                  <SelectItem key={s.id} value={s.id}>Sesión #{s.session_number} — {new Date(s.scheduled_date).toLocaleDateString('es-CL')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddToSession(false)}>Cancelar</Button>
+            <Button disabled={!selectedSessionId || actionLoading} onClick={async () => {
+              setActionLoading(true);
+              const { count } = await supabase.from('session_agenda_items').select('id', { count: 'exact', head: true }).eq('session_id', selectedSessionId);
+              const { error } = await supabase.from('session_agenda_items').insert({
+                session_id: selectedSessionId, project_id: project.id, item_order: (count ?? 0) + 1, description: `Evaluación: ${project.title}`,
+              });
+              if (!error) {
+                await supabase.from('projects').update({ status: 'en_sesion' }).eq('id', project.id);
+                setProject({ ...project, status: 'en_sesion' });
+                toast.success('Proyecto agregado a la sesión.');
+                setShowAddToSession(false);
+                await refreshHistory();
+              } else { toast.error('Error: ' + error.message); }
+              setActionLoading(false);
+            }}>{actionLoading ? 'Agregando...' : 'Agregar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pre-revision panel */}
       {isSecretario && project.status === 'en_pre_revision' && (
