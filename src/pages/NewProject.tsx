@@ -160,11 +160,12 @@ export default function NewProject() {
         await uploadDocuments(data.id);
       }
 
-      // Auto-generate certificado de recepción
+      // Auto-generate certificado de recepción and notify
       if (submit) {
-        try {
-          await generateCertificadoRecepcion(data.id, user.id);
-        } catch (pdfErr) { console.error('Error generando certificado:', pdfErr); }
+        try { await generateCertificadoRecepcion(data.id, user.id); } catch (pdfErr) { console.error('Error generando certificado:', pdfErr); }
+        // Fetch project code for notifications
+        const { data: freshProject } = await supabase.from('projects').select('code').eq('id', data.id).single();
+        notifyProjectReceived(data.id, freshProject?.code ?? '', form.title, user.id).catch(console.error);
       }
 
       toast.success(submit ? 'Solicitud enviada exitosamente.' : 'Borrador guardado.');
