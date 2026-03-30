@@ -34,6 +34,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/new" element={<NewProject />} />
+              <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/sessions" element={<div className="text-muted-foreground">Sesiones — Próximamente</div>} />
               <Route path="/users" element={<div className="text-muted-foreground">Usuarios — Próximamente</div>} />
               <Route path="/reports" element={<div className="text-muted-foreground">Reportes — Próximamente</div>} />
