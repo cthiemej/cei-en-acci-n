@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus } from 'lucide-react';
+import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 const projectTypeLabels: Record<string, string> = { fondecyt: 'Fondecyt', fondo_interno: 'Fondo interno UDP', tesis_doctoral: 'Tesis doctoral', otro_concursable: 'Otro fondo concursable' };
