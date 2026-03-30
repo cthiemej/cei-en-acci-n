@@ -48,8 +48,9 @@ export default function SessionDetail() {
   const [voteAbstenciones, setVoteAbstenciones] = useState(0);
   const [resolutionResult, setResolutionResult] = useState('');
 
-  // Minutes
   const [minutesDraft, setMinutesDraft] = useState('');
+  const [generatedActa, setGeneratedActa] = useState<{ id: string; storage_path: string; created_at: string | null } | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchAll = async () => {
     if (!id) return;
