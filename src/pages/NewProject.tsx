@@ -35,16 +35,7 @@ const DOC_CONFIGS: DocConfig[] = [
   { type: 'carta_compromiso', label: 'Carta de compromiso del investigador', required: true },
 ];
 
-function addBusinessDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  let added = 0;
-  while (added < days) {
-    result.setDate(result.getDate() + 1);
-    const dow = result.getDay();
-    if (dow !== 0 && dow !== 6) added++;
-  }
-  return result;
-}
+import { addBusinessDays } from '@/lib/businessDays';
 
 function getEvaluationTrack(involvesHuman: boolean, secondaryOnly: boolean): { track: string; label: string; description: string; color: string } {
   if (secondaryOnly && !involvesHuman) {

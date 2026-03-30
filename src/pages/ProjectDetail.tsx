@@ -31,12 +31,8 @@ interface EvaluatorProfile { id: string; full_name: string; email: string; }
 interface GeneratedDocRow { id: string; document_type: string; storage_path: string; created_at: string | null; }
 const genDocTypeLabels: Record<string, string> = { certificado_recepcion: 'Certificado de Recepción', acta_aprobacion: 'Acta de Aprobación', acta_rechazo: 'Acta de Rechazo', certificado_eximicion: 'Certificado de Eximición', acta_sesion: 'Acta de Sesión' };
 
-function addBusinessDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  let added = 0;
-  while (added < days) { result.setDate(result.getDate() + 1); if (result.getDay() !== 0 && result.getDay() !== 6) added++; }
-  return result;
-}
+import { addBusinessDays } from '@/lib/businessDays';
+import { DeadlineAlert } from '@/components/DeadlineAlert';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
