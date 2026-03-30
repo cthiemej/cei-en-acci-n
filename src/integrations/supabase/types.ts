@@ -14,16 +14,155 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          confidentiality_signed: boolean | null
+          conflict_declaration_signed: boolean | null
+          created_at: string | null
+          email: string
+          faculty: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          is_external: boolean | null
+          phone: string | null
+        }
+        Insert: {
+          confidentiality_signed?: boolean | null
+          conflict_declaration_signed?: boolean | null
+          created_at?: string | null
+          email: string
+          faculty?: string | null
+          full_name: string
+          id: string
+          is_active?: boolean | null
+          is_external?: boolean | null
+          phone?: string | null
+        }
+        Update: {
+          confidentiality_signed?: boolean | null
+          conflict_declaration_signed?: boolean | null
+          created_at?: string | null
+          email?: string
+          faculty?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_external?: boolean | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          abstract: string | null
+          code: string | null
+          created_at: string | null
+          deadline_extended: boolean | null
+          evaluation_track: string | null
+          funding_source: string | null
+          id: string
+          involves_human_participants: boolean | null
+          principal_investigator_id: string
+          project_type: string | null
+          reception_deadline: string | null
+          resolution_summary: string | null
+          review_deadline: string | null
+          status: string | null
+          submitted_at: string | null
+          title: string
+          updated_at: string | null
+          uses_secondary_data_only: boolean | null
+        }
+        Insert: {
+          abstract?: string | null
+          code?: string | null
+          created_at?: string | null
+          deadline_extended?: boolean | null
+          evaluation_track?: string | null
+          funding_source?: string | null
+          id?: string
+          involves_human_participants?: boolean | null
+          principal_investigator_id: string
+          project_type?: string | null
+          reception_deadline?: string | null
+          resolution_summary?: string | null
+          review_deadline?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          title: string
+          updated_at?: string | null
+          uses_secondary_data_only?: boolean | null
+        }
+        Update: {
+          abstract?: string | null
+          code?: string | null
+          created_at?: string | null
+          deadline_extended?: boolean | null
+          evaluation_track?: string | null
+          funding_source?: string | null
+          id?: string
+          involves_human_participants?: boolean | null
+          principal_investigator_id?: string
+          project_type?: string | null
+          reception_deadline?: string | null
+          resolution_summary?: string | null
+          review_deadline?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string | null
+          uses_secondary_data_only?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_principal_investigator_id_fkey"
+            columns: ["principal_investigator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "investigador"
+        | "evaluador"
+        | "secretario"
+        | "presidente"
+        | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +289,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "investigador",
+        "evaluador",
+        "secretario",
+        "presidente",
+        "admin",
+      ],
+    },
   },
 } as const
