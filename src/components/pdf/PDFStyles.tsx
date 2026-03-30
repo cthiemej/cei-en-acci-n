@@ -1,0 +1,25 @@
+import { StyleSheet } from '@react-pdf/renderer';
+
+export const styles = StyleSheet.create({
+  page: { padding: 50, fontFamily: 'Helvetica', fontSize: 11, color: '#1A1A2E' },
+  header: { marginBottom: 20, borderBottomWidth: 2, borderBottomColor: '#C8102E', paddingBottom: 10 },
+  headerTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#C8102E', textAlign: 'center' },
+  headerSubtitle: { fontSize: 9, textAlign: 'center', color: '#666', marginTop: 2 },
+  title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#C8102E', textAlign: 'center', marginBottom: 20, marginTop: 10 },
+  body: { lineHeight: 1.6, textAlign: 'justify', marginBottom: 10 },
+  label: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#2E5090', marginTop: 8 },
+  value: { fontSize: 11, marginBottom: 4 },
+  row: { flexDirection: 'row', marginBottom: 4 },
+  rowLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', width: 160, color: '#333' },
+  rowValue: { fontSize: 10, flex: 1 },
+  section: { marginTop: 14, marginBottom: 6 },
+  sectionTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#2E5090', marginBottom: 6, borderBottomWidth: 1, borderBottomColor: '#ddd', paddingBottom: 3 },
+  footer: { position: 'absolute', bottom: 30, left: 50, right: 50, borderTopWidth: 1, borderTopColor: '#C8102E', paddingTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
+  footerText: { fontSize: 8, color: '#999' },
+  table: { marginTop: 6 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 4 },
+  tableHeader: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#2E5090', paddingBottom: 4, marginBottom: 2 },
+  tableCell: { fontSize: 9, flex: 1 },
+  tableCellBold: { fontSize: 9, flex: 1, fontFamily: 'Helvetica-Bold' },
+  line: { borderBottomWidth: 1, borderBottomColor: '#C8102E', marginVertical: 10 },
+});
