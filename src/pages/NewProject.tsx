@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Check, Upload, FileText, AlertCircle, Info, ChevronLeft, ChevronRight, Send, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateCertificadoRecepcion } from '@/lib/pdfGenerator';
 
 const STEPS = ['Datos del Proyecto', 'Clasificación Ética', 'Documentos', 'Revisión y Envío'];
 
@@ -156,6 +157,13 @@ export default function NewProject() {
 
       if (Object.keys(uploadedDocs).length > 0) {
         await uploadDocuments(data.id);
+      }
+
+      // Auto-generate certificado de recepción
+      if (submit) {
+        try {
+          await generateCertificadoRecepcion(data.id, user.id);
+        } catch (pdfErr) { console.error('Error generando certificado:', pdfErr); }
       }
 
       toast.success(submit ? 'Solicitud enviada exitosamente.' : 'Borrador guardado.');

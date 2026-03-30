@@ -12,20 +12,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus } from 'lucide-react';
+import { Download, ArrowLeft, FileText, ChevronRight, CheckCircle, XCircle, AlertTriangle, UserPlus, CalendarPlus, FileDown, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { generateCertificadoRecepcion, generateActaAprobacion, generateActaRechazo, generateCertificadoEximicion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
 
 const projectTypeLabels: Record<string, string> = { fondecyt: 'Fondecyt', fondo_interno: 'Fondo interno UDP', tesis_doctoral: 'Tesis doctoral', otro_concursable: 'Otro fondo concursable' };
 const trackLabels: Record<string, string> = { regular: 'Evaluación Regular', expedita: 'Evaluación Expedita', eximicion: 'Eximición' };
 const docTypeLabels: Record<string, string> = { formato_revision: 'Formato de revisión', protocolo: 'Protocolo de investigación', cv_investigador: 'Currículum Vitae', consentimiento_informado: 'Consentimiento informado', material_reclutamiento: 'Material de reclutamiento', carta_compromiso: 'Carta de compromiso', otro: 'Otro' };
 const recommendationLabels: Record<string, string> = { aprobar: 'Aprobar', rechazar: 'Rechazar', solicitar_cambios: 'Solicitar cambios' };
 
-interface Project { id: string; code: string | null; title: string; abstract: string | null; status: string | null; project_type: string | null; funding_source: string | null; evaluation_track: string | null; involves_human_participants: boolean | null; uses_secondary_data_only: boolean | null; submitted_at: string | null; reception_deadline: string | null; review_deadline: string | null; created_at: string | null; updated_at: string | null; principal_investigator_id: string; }
+interface Project { id: string; code: string | null; title: string; abstract: string | null; status: string | null; project_type: string | null; funding_source: string | null; evaluation_track: string | null; involves_human_participants: boolean | null; uses_secondary_data_only: boolean | null; submitted_at: string | null; reception_deadline: string | null; review_deadline: string | null; created_at: string | null; updated_at: string | null; principal_investigator_id: string; resolution_summary: string | null; }
 interface DocRow { id: string; document_type: string; file_name: string; storage_path: string; version: number | null; created_at: string | null; }
 interface HistoryRow { id: string; old_status: string | null; new_status: string; created_at: string | null; changed_by: string | null; }
 interface EvalRow { id: string; project_id: string; evaluator_id: string; recommendation: string | null; scientific_validity: string | null; risk_benefit: string | null; informed_consent_review: string | null; vulnerable_groups: string | null; general_observations: string | null; has_conflict_of_interest: boolean; conflict_description: string | null; submitted_at: string | null; created_at: string | null; }
 interface EvaluatorProfile { id: string; full_name: string; email: string; }
+interface GeneratedDocRow { id: string; document_type: string; storage_path: string; created_at: string | null; }
+const genDocTypeLabels: Record<string, string> = { certificado_recepcion: 'Certificado de Recepción', acta_aprobacion: 'Acta de Aprobación', acta_rechazo: 'Acta de Rechazo', certificado_eximicion: 'Certificado de Eximición', acta_sesion: 'Acta de Sesión' };
 
 function addBusinessDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -42,8 +45,10 @@ export default function ProjectDetail() {
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [evaluations, setEvaluations] = useState<EvalRow[]>([]);
+  const [generatedDocs, setGeneratedDocs] = useState<GeneratedDocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Pre-revision state
   const [docChecks, setDocChecks] = useState<Record<string, boolean>>({});
@@ -76,15 +81,17 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (!id) return;
     const fetchAll = async () => {
-      const [projectRes, docsRes, historyRes, evalsRes] = await Promise.all([
+      const [projectRes, docsRes, historyRes, evalsRes, genDocsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('id', id).single(),
         supabase.from('project_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
         supabase.from('project_status_history').select('*').eq('project_id', id).order('created_at', { ascending: true }),
         supabase.from('evaluations').select('*').eq('project_id', id),
+        supabase.from('generated_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       ]);
-      if (projectRes.data) setProject(projectRes.data as Project);
+      if (projectRes.data) setProject(projectRes.data as any);
       if (docsRes.data) setDocs(docsRes.data as DocRow[]);
       if (historyRes.data) setHistory(historyRes.data as HistoryRow[]);
+      if (genDocsRes.data) setGeneratedDocs(genDocsRes.data as GeneratedDocRow[]);
       if (evalsRes.data) {
         setEvaluations(evalsRes.data as EvalRow[]);
         // Load own evaluation into form if evaluator
@@ -130,14 +137,34 @@ export default function ProjectDetail() {
     URL.revokeObjectURL(url);
   };
 
+  const refreshGeneratedDocs = async () => {
+    if (!id) return;
+    const { data } = await supabase.from('generated_documents').select('*').eq('project_id', id).order('created_at', { ascending: false });
+    if (data) setGeneratedDocs(data as GeneratedDocRow[]);
+  };
+
   const handleStatusChange = async (newStatus: string, notes?: string) => {
-    if (!project) return;
+    if (!project || !user) return;
     setActionLoading(true);
     const { error } = await supabase.from('projects').update({ status: newStatus }).eq('id', project.id);
     if (error) { toast.error('Error: ' + error.message); } else {
       setProject({ ...project, status: newStatus });
       toast.success(`Estado cambiado.`);
       await refreshHistory();
+      // Auto-generate PDFs
+      try {
+        if (newStatus === 'recibido') await generateCertificadoRecepcion(project.id, user.id);
+        else if (newStatus === 'eximido') await generateCertificadoEximicion(project.id, user.id);
+        else if (newStatus === 'aprobado') await generateActaAprobacion(project.id, user.id);
+        else if (newStatus === 'rechazado') await generateActaRechazo(project.id, user.id);
+        if (['recibido', 'eximido', 'aprobado', 'rechazado'].includes(newStatus)) {
+          toast.success('Documento PDF generado automáticamente.');
+          await refreshGeneratedDocs();
+        }
+      } catch (pdfErr: any) {
+        console.error('Error generando PDF:', pdfErr);
+        toast.error('Error al generar PDF: ' + pdfErr.message);
+      }
     }
     setActionLoading(false);
   };
@@ -367,10 +394,11 @@ export default function ProjectDetail() {
       )}
 
       <Tabs defaultValue="info" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="info">Información General</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
           <TabsTrigger value="evaluations">Evaluaciones{evaluations.length > 0 && ` (${evaluations.filter(e => e.submitted_at).length}/${evaluations.length})`}</TabsTrigger>
+          <TabsTrigger value="generated">Documentos Generados{generatedDocs.length > 0 && ` (${generatedDocs.length})`}</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
@@ -511,6 +539,32 @@ export default function ProjectDetail() {
           {role === 'investigador' && (
             <Card className="shadow-sm"><CardContent className="pt-6"><p className="text-muted-foreground text-center py-6">Las evaluaciones no están disponibles para investigadores.</p></CardContent></Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="generated">
+          <Card className="shadow-sm">
+            <CardHeader><CardTitle className="text-lg">Documentos Generados</CardTitle></CardHeader>
+            <CardContent>
+              {generatedDocs.length === 0 ? <p className="text-muted-foreground text-center py-6">No hay documentos generados.</p> : (
+                <div className="space-y-2">
+                  {generatedDocs.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileDown className="h-5 w-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{genDocTypeLabels[doc.document_type] ?? doc.document_type}</p>
+                          <p className="text-xs text-muted-foreground">{doc.created_at ? new Date(doc.created_at).toLocaleString('es-CL') : ''}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => downloadGeneratedDoc(doc.storage_path, `${doc.document_type}.pdf`)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="timeline">

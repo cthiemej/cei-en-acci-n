@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { generateActaAprobacion, generateActaRechazo } from '@/lib/pdfGenerator';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,8 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Play, Square, CheckCircle, XCircle, Plus, Vote } from 'lucide-react';
+import { ArrowLeft, Play, Square, CheckCircle, XCircle, Plus, Vote, FileDown, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateActaSesion, downloadGeneratedDoc } from '@/lib/pdfGenerator';
 
 interface Session { id: string; session_number: number; session_type: string; scheduled_date: string; status: string; quorum_met: boolean; minutes_summary: string | null; created_by: string | null; }
 interface Attendee { id: string; session_id: string; member_id: string; attended: boolean; signed: boolean; profile?: { full_name: string; email: string }; }
@@ -47,8 +49,9 @@ export default function SessionDetail() {
   const [voteAbstenciones, setVoteAbstenciones] = useState(0);
   const [resolutionResult, setResolutionResult] = useState('');
 
-  // Minutes
   const [minutesDraft, setMinutesDraft] = useState('');
+  const [generatedActa, setGeneratedActa] = useState<{ id: string; storage_path: string; created_at: string | null } | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchAll = async () => {
     if (!id) return;
@@ -58,6 +61,11 @@ export default function SessionDetail() {
       supabase.from('session_agenda_items').select('*').eq('session_id', id).order('item_order'),
     ]);
     if (sRes.data) { setSession(sRes.data as Session); setMinutesDraft(sRes.data.minutes_summary ?? ''); }
+    // Fetch generated acta
+    if (id) {
+      const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+      if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+    }
 
     // Fetch attendee profiles
     if (aRes.data) {
@@ -83,12 +91,20 @@ export default function SessionDetail() {
   useEffect(() => { fetchAll(); }, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!session) return;
+    if (!session || !user) return;
     setActionLoading(true);
     const { error } = await supabase.from('sessions').update({ status: newStatus }).eq('id', session.id);
     if (error) { toast.error('Error: ' + error.message); } else {
       setSession({ ...session, status: newStatus });
       toast.success('Estado de sesión actualizado.');
+      if (newStatus === 'finalizada') {
+        try {
+          await generateActaSesion(session.id, user.id);
+          toast.success('Acta de sesión PDF generada automáticamente.');
+          const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', session.id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+          if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+        } catch (pdfErr: any) { console.error('Error generando acta:', pdfErr); toast.error('Error generando acta PDF.'); }
+      }
     }
     setActionLoading(false);
   };
@@ -142,6 +158,14 @@ export default function SessionDetail() {
       const statusMap: Record<string, string> = { aprobado: 'aprobado', rechazado: 'rechazado', pendiente: 'pendiente', expedito: 'expedito' };
       if (statusMap[resolutionResult]) {
         await supabase.from('projects').update({ status: statusMap[resolutionResult], resolution_summary: resolutionText }).eq('id', item.project_id);
+        // Auto-generate PDF for approval/rejection
+        if (user && (resolutionResult === 'aprobado' || resolutionResult === 'rechazado')) {
+          try {
+            if (resolutionResult === 'aprobado') await generateActaAprobacion(item.project_id, user.id);
+            else await generateActaRechazo(item.project_id, user.id);
+            toast.success('Documento PDF generado automáticamente.');
+          } catch (pdfErr: any) { console.error('Error generando PDF:', pdfErr); }
+        }
       }
     }
     const { error } = await supabase.from('session_agenda_items').update(updateData).eq('id', showResolution);
@@ -325,6 +349,28 @@ export default function SessionDetail() {
                     <Button onClick={handleSaveMinutes} disabled={actionLoading}>{actionLoading ? 'Guardando...' : 'Guardar Acta'}</Button>
                   </div>
                 )}
+                <div className="flex gap-3">
+                  {generatedActa ? (
+                    <Button variant="outline" onClick={() => downloadGeneratedDoc(generatedActa.storage_path, `acta_sesion_${session.session_number}.pdf`)}>
+                      <Download className="h-4 w-4 mr-2" />Descargar Acta PDF
+                    </Button>
+                  ) : canManage && (
+                    <Button variant="outline" disabled={pdfLoading} onClick={async () => {
+                      if (!user) return;
+                      setPdfLoading(true);
+                      try {
+                        await generateActaSesion(session.id, user.id);
+                        toast.success('Acta PDF generada.');
+                        const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', session.id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+                        if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+                      } catch (err: any) { toast.error('Error: ' + err.message); }
+                      setPdfLoading(false);
+                    }}>
+                      {pdfLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                      {pdfLoading ? 'Generando...' : 'Generar Acta PDF'}
+                    </Button>
+                  )}
+                </div>
                 <div className="rounded-lg border p-6 space-y-4 text-sm">
                   <div className="text-center border-b pb-4">
                     <h2 className="font-bold text-lg">Acta de Sesión {session.session_type} #{session.session_number}</h2>
