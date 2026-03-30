@@ -60,6 +60,11 @@ export default function SessionDetail() {
       supabase.from('session_agenda_items').select('*').eq('session_id', id).order('item_order'),
     ]);
     if (sRes.data) { setSession(sRes.data as Session); setMinutesDraft(sRes.data.minutes_summary ?? ''); }
+    // Fetch generated acta
+    if (id) {
+      const { data: actaData } = await supabase.from('generated_documents').select('id, storage_path, created_at').eq('session_id', id).eq('document_type', 'acta_sesion').order('created_at', { ascending: false }).limit(1);
+      if (actaData && actaData.length > 0) setGeneratedActa(actaData[0] as any);
+    }
 
     // Fetch attendee profiles
     if (aRes.data) {
