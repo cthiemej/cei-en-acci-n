@@ -242,6 +242,10 @@ export default function ProjectDetail() {
     if (error) { toast.error('Error: ' + error.message); } else {
       toast.success(submit ? 'Evaluación enviada.' : 'Borrador guardado.');
       await refreshEvaluations();
+      if (submit && project) {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+        notifyEvaluacionCompletada(project.id, project.code ?? '', profile?.full_name ?? '').catch(console.error);
+      }
     }
     setActionLoading(false);
   };
