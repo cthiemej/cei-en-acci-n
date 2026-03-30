@@ -541,6 +541,32 @@ export default function ProjectDetail() {
           )}
         </TabsContent>
 
+        <TabsContent value="generated">
+          <Card className="shadow-sm">
+            <CardHeader><CardTitle className="text-lg">Documentos Generados</CardTitle></CardHeader>
+            <CardContent>
+              {generatedDocs.length === 0 ? <p className="text-muted-foreground text-center py-6">No hay documentos generados.</p> : (
+                <div className="space-y-2">
+                  {generatedDocs.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileDown className="h-5 w-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{genDocTypeLabels[doc.document_type] ?? doc.document_type}</p>
+                          <p className="text-xs text-muted-foreground">{doc.created_at ? new Date(doc.created_at).toLocaleString('es-CL') : ''}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => downloadGeneratedDoc(doc.storage_path, `${doc.document_type}.pdf`)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="timeline">
           <Card className="shadow-sm">
             <CardHeader><CardTitle className="text-lg">Historial de estados</CardTitle></CardHeader>
