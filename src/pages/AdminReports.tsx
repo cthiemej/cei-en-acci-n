@@ -91,94 +91,60 @@ export default function AdminReports() {
 
   const profileMap = useMemo(() => new Map(profiles.map(p => [p.id, p])), [profiles]);
 
-  if (role !== 'admin') return <div className="text-center py-16 text-muted-foreground">Acceso denegado.</div>;
-
-  // Stats
-  const resolved = filtered.filter(p => ['aprobado', 'rechazado', 'eximido'].includes(p.status ?? ''));
-  const approved = filtered.filter(p => p.status === 'aprobado').length;
-  const inProcess = filtered.filter(p => ['recibido', 'en_pre_revision', 'asignado', 'en_evaluacion', 'en_sesion'].includes(p.status ?? '')).length;
-  const approvalRate = resolved.length > 0 ? Math.round((approved / resolved.length) * 100) : 0;
-
-  // Avg eval time in business days
-  const evalTimes = resolved.filter(p => p.submitted_at && p.updated_at).map(p => {
-    const sub = new Date(p.submitted_at!);
-    const res = new Date(p.updated_at!);
-    return Math.abs(businessDaysRemaining(res, sub));
-  });
-  const avgEvalTime = evalTimes.length > 0 ? Math.round(evalTimes.reduce((a, b) => a + b, 0) / evalTimes.length) : 0;
-
-  // Chart data: projects by status (pie)
   const statusCounts = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach(p => {
-      const s = p.status ?? 'borrador';
-      map.set(s, (map.get(s) ?? 0) + 1);
-    });
+    filtered.forEach(p => { const s = p.status ?? 'borrador'; map.set(s, (map.get(s) ?? 0) + 1); });
     return Array.from(map.entries()).map(([name, value]) => ({ name: STATUS_LABELS[name] ?? name, value }));
   }, [filtered]);
 
-  // Projects by month (bar)
   const byMonth = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.filter(p => p.submitted_at).forEach(p => {
-      const d = new Date(p.submitted_at!);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      map.set(key, (map.get(key) ?? 0) + 1);
-    });
+    filtered.filter(p => p.submitted_at).forEach(p => { const d = new Date(p.submitted_at!); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; map.set(key, (map.get(key) ?? 0) + 1); });
     return Array.from(map.entries()).sort().map(([month, count]) => ({ month, count }));
   }, [filtered]);
 
-  // By faculty (horizontal bar)
   const byFaculty = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach(p => {
-      const profile = profileMap.get(p.principal_investigator_id);
-      const fac = profile?.faculty ?? 'Sin facultad';
-      map.set(fac, (map.get(fac) ?? 0) + 1);
-    });
+    filtered.forEach(p => { const prof = profileMap.get(p.principal_investigator_id); const fac = prof?.faculty ?? 'Sin facultad'; map.set(fac, (map.get(fac) ?? 0) + 1); });
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).map(([faculty, count]) => ({ faculty, count }));
   }, [filtered, profileMap]);
 
-  // By type (pie)
   const byType = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach(p => {
-      const t = p.project_type ?? 'sin_tipo';
-      map.set(t, (map.get(t) ?? 0) + 1);
-    });
+    filtered.forEach(p => { const t = p.project_type ?? 'sin_tipo'; map.set(t, (map.get(t) ?? 0) + 1); });
     return Array.from(map.entries()).map(([name, value]) => ({ name: TYPE_LABELS[name] ?? name, value }));
   }, [filtered]);
 
-  // Resolutions by month (stacked bar)
   const resolutionsByMonth = useMemo(() => {
     const map = new Map<string, { aprobado: number; rechazado: number; pendiente: number }>();
     filtered.filter(p => ['aprobado', 'rechazado', 'pendiente'].includes(p.status ?? '') && p.updated_at).forEach(p => {
-      const d = new Date(p.updated_at!);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const d = new Date(p.updated_at!); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!map.has(key)) map.set(key, { aprobado: 0, rechazado: 0, pendiente: 0 });
-      const entry = map.get(key)!;
-      if (p.status === 'aprobado') entry.aprobado++;
-      else if (p.status === 'rechazado') entry.rechazado++;
-      else if (p.status === 'pendiente') entry.pendiente++;
+      const e = map.get(key)!;
+      if (p.status === 'aprobado') e.aprobado++; else if (p.status === 'rechazado') e.rechazado++; else if (p.status === 'pendiente') e.pendiente++;
     });
     return Array.from(map.entries()).sort().map(([month, data]) => ({ month, ...data }));
   }, [filtered]);
 
-  // Avg eval time by month (line)
   const evalTimeByMonth = useMemo(() => {
+    const res = filtered.filter(p => ['aprobado', 'rechazado', 'eximido'].includes(p.status ?? ''));
     const map = new Map<string, number[]>();
-    resolved.filter(p => p.submitted_at && p.updated_at).forEach(p => {
-      const d = new Date(p.updated_at!);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    res.filter(p => p.submitted_at && p.updated_at).forEach(p => {
+      const d = new Date(p.updated_at!); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const days = Math.abs(businessDaysRemaining(new Date(p.updated_at!), new Date(p.submitted_at!)));
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(days);
+      if (!map.has(key)) map.set(key, []); map.get(key)!.push(days);
     });
-    return Array.from(map.entries()).sort().map(([month, days]) => ({
-      month,
-      promedio: Math.round(days.reduce((a, b) => a + b, 0) / days.length),
-    }));
-  }, [resolved]);
+    return Array.from(map.entries()).sort().map(([month, days]) => ({ month, promedio: Math.round(days.reduce((a, b) => a + b, 0) / days.length) }));
+  }, [filtered]);
+
+  if (role !== 'admin') return <div className="text-center py-16 text-muted-foreground">Acceso denegado.</div>;
+
+  const resolved = filtered.filter(p => ['aprobado', 'rechazado', 'eximido'].includes(p.status ?? ''));
+  const approved = filtered.filter(p => p.status === 'aprobado').length;
+  const inProcess = filtered.filter(p => ['recibido', 'en_pre_revision', 'asignado', 'en_evaluacion', 'en_sesion'].includes(p.status ?? '')).length;
+  const approvalRate = resolved.length > 0 ? Math.round((approved / resolved.length) * 100) : 0;
+  const evalTimes = resolved.filter(p => p.submitted_at && p.updated_at).map(p => Math.abs(businessDaysRemaining(new Date(p.updated_at!), new Date(p.submitted_at!))));
+  const avgEvalTime = evalTimes.length > 0 ? Math.round(evalTimes.reduce((a, b) => a + b, 0) / evalTimes.length) : 0;
 
   const exportCSV = () => {
     const headers = ['Código', 'Título', 'Estado', 'Tipo', 'Fecha Envío', 'Última Actualización'];
