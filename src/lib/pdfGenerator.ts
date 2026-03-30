@@ -173,7 +173,7 @@ export async function generateActaSesion(sessionId: string, userId: string) {
     generatedDate: now(),
   });
 
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
   const path = `sessions/${sessionId}/acta_sesion_${Date.now()}.pdf`;
   await uploadAndRecord(blob, path, 'acta_sesion', null, sessionId, userId);
   return blob;
