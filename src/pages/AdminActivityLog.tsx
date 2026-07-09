@@ -14,7 +14,7 @@ import { CalendarIcon, Download, Search, ChevronLeft, ChevronRight } from 'lucid
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-interface AuditRow {
+interface ActivityRow {
   id: string;
   user_id: string | null;
   action: string;
@@ -48,9 +48,9 @@ const actionColors: Record<string, string> = {
 
 const PAGE_SIZE = 25;
 
-export default function AdminAudit() {
+export default function AdminActivityLog() {
   const { role } = useAuth();
-  const [logs, setLogs] = useState<AuditRow[]>([]);
+  const [logs, setLogs] = useState<ActivityRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ export default function AdminAudit() {
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
-      let query = supabase.from('audit_log').select('*', { count: 'exact' })
+      let query = supabase.from('activity_log').select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -124,11 +124,11 @@ export default function AdminAudit() {
     const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'auditoria_cei.csv'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'registro_actividad_cei.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const getMetadataSummary = (log: AuditRow): string => {
+  const getMetadataSummary = (log: ActivityRow): string => {
     if (!log.metadata) return '-';
     if (log.action === 'update' && log.metadata.old && log.metadata.new) {
       const changes: string[] = [];
@@ -150,7 +150,7 @@ export default function AdminAudit() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Registro de Auditoría</h1>
+          <h1 className="text-2xl font-bold text-foreground">Registro de Actividad</h1>
           <p className="text-muted-foreground text-sm mt-1">Historial de acciones en la plataforma</p>
         </div>
         <Button variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-2" />Exportar CSV</Button>
