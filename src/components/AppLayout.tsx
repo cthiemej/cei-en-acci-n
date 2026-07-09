@@ -9,7 +9,10 @@ import { NotificationBell } from '@/components/NotificationBell';
 const routeLabels: Record<string, string> = {
   '/dashboard': 'Panel',
   '/projects': 'Proyectos',
+  '/requests/new': 'Nueva Solicitud',
   '/projects/new': 'Nueva Solicitud',
+  '/amendments/new': 'Nueva Enmienda',
+  '/audits/new': 'Nueva Auditoría',
   '/sessions': 'Sesiones',
   '/users': 'Usuarios',
   '/reports': 'Reportes',
