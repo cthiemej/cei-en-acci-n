@@ -19,6 +19,7 @@ import SessionDetail from "./pages/SessionDetail.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
 import AdminReports from "./pages/AdminReports.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
+import SelectMode from "./pages/SelectMode.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/select-mode" element={<SelectMode />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />

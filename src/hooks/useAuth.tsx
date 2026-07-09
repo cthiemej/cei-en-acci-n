@@ -2,7 +2,34 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type UserRole = 'investigador' | 'evaluador' | 'secretario' | 'presidente' | 'admin';
+type UserRole =
+  | 'investigador'
+  | 'evaluador'
+  | 'secretario'
+  | 'presidente'
+  | 'vicepresidente'
+  | 'miembro_interno_cei'
+  | 'miembro_externo_cei'
+  | 'admin';
+
+export type CeiCargo =
+  | 'presidente'
+  | 'vicepresidente'
+  | 'secretario'
+  | 'miembro_interno_cei'
+  | 'miembro_externo_cei';
+
+export type ActiveMode = 'admin' | 'cei' | 'investigador';
+
+const CEI_CARGOS: UserRole[] = [
+  'presidente',
+  'vicepresidente',
+  'secretario',
+  'miembro_interno_cei',
+  'miembro_externo_cei',
+];
+
+const ACTIVE_MODE_KEY = 'cei-udp:active-mode';
 
 interface Profile {
   id: string;
@@ -18,7 +45,16 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  /** Rol efectivo del modo activo (compat con código existente). */
   role: UserRole | null;
+  /** Todas las filas de user_roles del usuario. */
+  roles: UserRole[];
+  ceiCargo: CeiCargo | null;
+  isAdmin: boolean;
+  isInvestigador: boolean;
+  availableModes: ActiveMode[];
+  activeMode: ActiveMode | null;
+  setActiveMode: (mode: ActiveMode) => void;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -28,11 +64,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function computeAvailableModes(roles: UserRole[]): ActiveMode[] {
+  const modes: ActiveMode[] = [];
+  if (roles.includes('admin')) modes.push('admin');
+  if (roles.some((r) => CEI_CARGOS.includes(r))) modes.push('cei');
+  if (roles.includes('investigador')) modes.push('investigador');
+  return modes;
+}
+
+function pickCeiCargo(roles: UserRole[]): CeiCargo | null {
+  const found = roles.find((r) => CEI_CARGOS.includes(r));
+  return (found as CeiCargo) ?? null;
+}
+
+function resolveEffectiveRole(
+  mode: ActiveMode | null,
+  roles: UserRole[],
+  cargo: CeiCargo | null,
+): UserRole | null {
+  if (!mode) return roles[0] ?? null;
+  if (mode === 'admin') return 'admin';
+  if (mode === 'cei') return cargo;
+  if (mode === 'investigador') return 'investigador';
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [activeMode, setActiveModeState] = useState<ActiveMode | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -57,11 +119,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
 
-    if (roleData) {
-      setRole(roleData.role as UserRole);
+    const userRoles = (roleData ?? []).map((r) => r.role as UserRole);
+    setRoles(userRoles);
+
+    const modes = computeAvailableModes(userRoles);
+    const stored = sessionStorage.getItem(ACTIVE_MODE_KEY) as ActiveMode | null;
+    if (stored && modes.includes(stored)) {
+      setActiveModeState(stored);
+    } else if (modes.length === 1) {
+      setActiveModeState(modes[0]);
+      sessionStorage.setItem(ACTIVE_MODE_KEY, modes[0]);
+    } else {
+      setActiveModeState(null);
     }
   };
 
@@ -75,7 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
-          setRole(null);
+          setRoles([]);
+          setActiveModeState(null);
+          sessionStorage.removeItem(ACTIVE_MODE_KEY);
         }
         setLoading(false);
       }
@@ -112,10 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    sessionStorage.removeItem(ACTIVE_MODE_KEY);
     setSession(null);
     setUser(null);
     setProfile(null);
-    setRole(null);
+    setRoles([]);
+    setActiveModeState(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -125,8 +200,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const setActiveMode = (mode: ActiveMode) => {
+    sessionStorage.setItem(ACTIVE_MODE_KEY, mode);
+    setActiveModeState(mode);
+  };
+
+  const ceiCargo = pickCeiCargo(roles);
+  const availableModes = computeAvailableModes(roles);
+  const isAdmin = roles.includes('admin');
+  const isInvestigador = roles.includes('investigador');
+  const role = resolveEffectiveRole(activeMode, roles, ceiCargo);
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, role, loading, signIn, signUp, signOut, resetPassword }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        role,
+        roles,
+        ceiCargo,
+        isAdmin,
+        isInvestigador,
+        availableModes,
+        activeMode,
+        setActiveMode,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

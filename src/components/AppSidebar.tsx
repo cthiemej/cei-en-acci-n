@@ -1,8 +1,9 @@
 import {
-  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, Shield,
+  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, Shield, Repeat,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useAuth, type ActiveMode } from '@/hooks/useAuth';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
@@ -10,32 +11,20 @@ import {
 
 type NavItem = { title: string; url: string; icon: React.ElementType };
 
-const navByRole: Record<string, NavItem[]> = {
+const navByMode: Record<ActiveMode, NavItem[]> = {
   investigador: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Mis Proyectos', url: '/projects', icon: FolderOpen },
     { title: 'Nueva Solicitud', url: '/projects/new', icon: FilePlus },
   ],
-  evaluador: [
+  cei: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Proyectos Asignados', url: '/projects', icon: FolderOpen },
-  ],
-  secretario: [
-    { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Todos los Proyectos', url: '/projects', icon: FolderOpen },
-    { title: 'Nueva Solicitud', url: '/projects/new', icon: FilePlus },
-    { title: 'Sesiones', url: '/sessions', icon: Calendar },
-  ],
-  presidente: [
-    { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Todos los Proyectos', url: '/projects', icon: FolderOpen },
+    { title: 'Proyectos', url: '/projects', icon: FolderOpen },
     { title: 'Sesiones', url: '/sessions', icon: Calendar },
     { title: 'Asignar Revisores', url: '/assign-reviewers', icon: UserCheck },
   ],
   admin: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
-    { title: 'Todos los Proyectos', url: '/projects', icon: FolderOpen },
-    { title: 'Sesiones', url: '/sessions', icon: Calendar },
     { title: 'Usuarios', url: '/admin/users', icon: Users },
     { title: 'Reportes', url: '/admin/reports', icon: BarChart3 },
     { title: 'Auditoría', url: '/admin/audit', icon: Shield },
@@ -47,14 +36,26 @@ const roleLabels: Record<string, string> = {
   evaluador: 'Evaluador',
   secretario: 'Secretario',
   presidente: 'Presidente',
+  vicepresidente: 'Vicepresidente',
+  miembro_interno_cei: 'Miembro interno CEI',
+  miembro_externo_cei: 'Miembro externo CEI',
   admin: 'Administrador',
 };
 
+const modeLabels: Record<ActiveMode, string> = {
+  admin: 'Modo Administrador',
+  cei: 'Modo Comité CEI',
+  investigador: 'Modo Investigador',
+};
+
 export function AppSidebar() {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, activeMode, availableModes } = useAuth();
   const { state } = useSidebar();
+  const navigate = useNavigate();
   const collapsed = state === 'collapsed';
-  const items = navByRole[role ?? 'investigador'] ?? navByRole.investigador;
+  const mode: ActiveMode = activeMode ?? availableModes[0] ?? 'investigador';
+  const items = navByMode[mode] ?? navByMode.investigador;
+  const canSwitch = availableModes.length > 1;
 
   return (
     <Sidebar collapsible="icon">
@@ -75,6 +76,11 @@ export function AppSidebar() {
               </div>
             )}
           </SidebarGroupLabel>
+          {!collapsed && activeMode && (
+            <div className="px-3 pb-2 text-[11px] uppercase tracking-wide text-sidebar-foreground/60">
+              {modeLabels[activeMode]}
+            </div>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -104,6 +110,17 @@ export function AppSidebar() {
           </div>
         )}
         <SidebarMenu>
+          {canSwitch && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => navigate('/select-mode')}
+                className="hover:bg-sidebar-accent text-sidebar-foreground/70"
+              >
+                <Repeat className="h-4 w-4 mr-2" />
+                {!collapsed && <span>Cambiar de modo</span>}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut} className="hover:bg-sidebar-accent text-sidebar-foreground/70">
               <LogOut className="h-4 w-4 mr-2" />
