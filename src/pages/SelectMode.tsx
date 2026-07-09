@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 const MODE_META: Record<ActiveMode, { label: string; desc: string; icon: React.ElementType }> = {
   admin: {
     label: 'Administrador',
-    desc: 'Gestión de usuarios, reportes y auditoría del sistema.',
+    desc: 'Gestión de usuarios, reportes y registro de actividad del sistema.',
     icon: Shield,
   },
   cei: {
