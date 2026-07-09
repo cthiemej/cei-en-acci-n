@@ -14,6 +14,7 @@ const routeLabels: Record<string, string> = {
   '/users': 'Usuarios',
   '/reports': 'Reportes',
   '/assign-reviewers': 'Asignar Revisores',
+  '/admin/actividad': 'Registro de Actividad',
 };
 
 export function AppLayout() {
