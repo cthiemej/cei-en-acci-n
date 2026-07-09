@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, Shield, Repeat,
+  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, History, Repeat,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +27,7 @@ const navByMode: Record<ActiveMode, NavItem[]> = {
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Usuarios', url: '/admin/users', icon: Users },
     { title: 'Reportes', url: '/admin/reports', icon: BarChart3 },
-    { title: 'Auditoría', url: '/admin/audit', icon: Shield },
+    { title: 'Registro de Actividad', url: '/admin/actividad', icon: History },
   ],
 };
 
