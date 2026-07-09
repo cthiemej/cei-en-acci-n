@@ -49,12 +49,16 @@ const modeLabels: Record<ActiveMode, string> = {
 };
 
 export function AppSidebar() {
-  const { profile, role, signOut, activeMode, availableModes } = useAuth();
+  const { profile, role, signOut, activeMode, availableModes, ceiCargo } = useAuth();
   const { state } = useSidebar();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
   const mode: ActiveMode = activeMode ?? availableModes[0] ?? 'investigador';
-  const items = navByMode[mode] ?? navByMode.investigador;
+  const baseItems = navByMode[mode] ?? navByMode.investigador;
+  const canAssignReviewers = ceiCargo === 'presidente' || ceiCargo === 'secretario';
+  const items = baseItems.filter(i =>
+    i.url === '/assign-reviewers' ? mode === 'cei' && canAssignReviewers : true,
+  );
   const canSwitch = availableModes.length > 1;
 
   return (

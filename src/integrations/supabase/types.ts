@@ -66,6 +66,7 @@ export type Database = {
           informed_consent_review: string | null
           project_id: string
           recommendation: string | null
+          reviewer_role: string
           risk_benefit: string | null
           scientific_validity: string | null
           submitted_at: string | null
@@ -81,6 +82,7 @@ export type Database = {
           informed_consent_review?: string | null
           project_id: string
           recommendation?: string | null
+          reviewer_role?: string
           risk_benefit?: string | null
           scientific_validity?: string | null
           submitted_at?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           informed_consent_review?: string | null
           project_id?: string
           recommendation?: string | null
+          reviewer_role?: string
           risk_benefit?: string | null
           scientific_validity?: string | null
           submitted_at?: string | null

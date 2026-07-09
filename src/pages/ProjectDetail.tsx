@@ -27,8 +27,8 @@ const recommendationLabels: Record<string, string> = { aprobar: 'Aprobar', recha
 interface Project { id: string; code: string | null; title: string; abstract: string | null; status: string | null; project_type: string | null; funding_source: string | null; evaluation_track: string | null; involves_human_participants: boolean | null; uses_secondary_data_only: boolean | null; submitted_at: string | null; reception_deadline: string | null; review_deadline: string | null; deadline_extended: boolean | null; created_at: string | null; updated_at: string | null; principal_investigator_id: string; resolution_summary: string | null; }
 interface DocRow { id: string; document_type: string; file_name: string; storage_path: string; version: number | null; created_at: string | null; }
 interface HistoryRow { id: string; old_status: string | null; new_status: string; created_at: string | null; changed_by: string | null; }
-interface EvalRow { id: string; project_id: string; evaluator_id: string; recommendation: string | null; scientific_validity: string | null; risk_benefit: string | null; informed_consent_review: string | null; vulnerable_groups: string | null; general_observations: string | null; has_conflict_of_interest: boolean; conflict_description: string | null; submitted_at: string | null; created_at: string | null; }
-interface EvaluatorProfile { id: string; full_name: string; email: string; }
+interface EvalRow { id: string; project_id: string; evaluator_id: string; reviewer_role: 'primario' | 'secundario'; recommendation: string | null; scientific_validity: string | null; risk_benefit: string | null; informed_consent_review: string | null; vulnerable_groups: string | null; general_observations: string | null; has_conflict_of_interest: boolean; conflict_description: string | null; submitted_at: string | null; created_at: string | null; }
+interface EvaluatorProfile { id: string; full_name: string; email: string; isExterno: boolean; }
 interface GeneratedDocRow { id: string; document_type: string; storage_path: string; created_at: string | null; }
 const genDocTypeLabels: Record<string, string> = { certificado_recepcion: 'Certificado de Recepción', acta_aprobacion: 'Acta de Aprobación', acta_rechazo: 'Acta de Rechazo', certificado_eximicion: 'Certificado de Eximición', acta_sesion: 'Acta de Sesión' };
 
@@ -37,7 +37,7 @@ import { DeadlineAlert } from '@/components/DeadlineAlert';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const { role, user } = useAuth();
+  const { role, ceiCargo, user } = useAuth();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [docs, setDocs] = useState<DocRow[]>([]);
@@ -54,7 +54,8 @@ export default function ProjectDetail() {
 
   // Assign reviewers state
   const [evaluators, setEvaluators] = useState<EvaluatorProfile[]>([]);
-  const [selectedEvaluators, setSelectedEvaluators] = useState<string[]>([]);
+  const [primarioId, setPrimarioId] = useState<string>('');
+  const [secundarioId, setSecundarioId] = useState<string>('');
 
   // Evaluator form state
   const [evalForm, setEvalForm] = useState({ scientific_validity: '', risk_benefit: '', informed_consent_review: '', vulnerable_groups: '', general_observations: '', recommendation: '', has_conflict_of_interest: false, conflict_description: '' });
@@ -112,20 +113,24 @@ export default function ProjectDetail() {
     fetchAll();
   }, [id, user?.id]);
 
+  // Only presidente & secretario can assign reviewers
+  const canAssign = ceiCargo === 'presidente' || ceiCargo === 'secretario';
+
   // Fetch evaluators for assignment
   useEffect(() => {
-    if (canAssignReviewers(role) && project?.status === 'asignado') {
+    if (canAssign && project?.status === 'asignado') {
       const fetchEvaluators = async () => {
-        const { data } = await supabase.from('user_roles').select('user_id').in('role', CEI_CARGOS as any);
+        const { data } = await supabase.from('user_roles').select('user_id, role').in('role', CEI_CARGOS as any);
         if (data && data.length > 0) {
           const ids = [...new Set(data.map(d => d.user_id))];
+          const externos = new Set(data.filter(d => d.role === 'miembro_externo_cei').map(d => d.user_id));
           const { data: profiles } = await supabase.from('profiles').select('id, full_name, email').in('id', ids).eq('is_active', true);
-          if (profiles) setEvaluators(profiles);
+          if (profiles) setEvaluators(profiles.map(p => ({ ...p, isExterno: externos.has(p.id) })));
         }
       };
       fetchEvaluators();
     }
-  }, [role, project?.status]);
+  }, [canAssign, project?.status]);
 
   const handleDownload = async (storagePath: string, fileName: string) => {
     const { data, error } = await supabase.storage.from('project-files').download(storagePath);
@@ -189,25 +194,34 @@ export default function ProjectDetail() {
   // Assign reviewers
   const handleAssignReviewers = async () => {
     if (!project || !user) return;
-    const requiredCount = project.evaluation_track === 'expedita' ? 1 : 2;
-    if (selectedEvaluators.length !== requiredCount) {
-      toast.error(`Debes seleccionar exactamente ${requiredCount} evaluador(es).`);
+    const isExpedita = project.evaluation_track === 'expedita';
+    if (!primarioId) {
+      toast.error('Debes seleccionar un revisor primario.');
+      return;
+    }
+    if (!isExpedita && !secundarioId) {
+      toast.error('Debes seleccionar un revisor secundario.');
+      return;
+    }
+    if (!isExpedita && primarioId === secundarioId) {
+      toast.error('El revisor primario y secundario deben ser personas distintas.');
       return;
     }
     setActionLoading(true);
     try {
-      for (const evId of selectedEvaluators) {
-        const { error } = await supabase.from('evaluations').insert({ project_id: project.id, evaluator_id: evId });
-        if (error) throw error;
-      }
+      const rows: Array<{ project_id: string; evaluator_id: string; reviewer_role: 'primario' | 'secundario' }> = [
+        { project_id: project.id, evaluator_id: primarioId, reviewer_role: 'primario' },
+      ];
+      if (!isExpedita) rows.push({ project_id: project.id, evaluator_id: secundarioId, reviewer_role: 'secundario' });
+      const { error } = await supabase.from('evaluations').insert(rows);
+      if (error) throw error;
       const reviewDeadline = project.submitted_at ? addBusinessDays(new Date(project.submitted_at), 30).toISOString() : null;
       const { error: updateErr } = await supabase.from('projects').update({ status: 'en_evaluacion', review_deadline: reviewDeadline }).eq('id', project.id);
       if (updateErr) throw updateErr;
       setProject({ ...project, status: 'en_evaluacion', review_deadline: reviewDeadline });
       toast.success('Revisores asignados exitosamente.');
       await Promise.all([refreshHistory(), refreshEvaluations()]);
-      // Notify each evaluator
-      for (const evId of selectedEvaluators) {
+      for (const evId of rows.map(r => r.evaluator_id)) {
         notifyEvaluadorAsignado(project.id, project.code ?? '', project.title, evId).catch(console.error);
       }
     } catch (err: any) { toast.error('Error: ' + err.message); }
@@ -245,10 +259,6 @@ export default function ProjectDetail() {
       }
     }
     setActionLoading(false);
-  };
-
-  const toggleEvaluator = (evId: string) => {
-    setSelectedEvaluators(prev => prev.includes(evId) ? prev.filter(id => id !== evId) : [...prev, evId]);
   };
 
   if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -400,36 +410,62 @@ export default function ProjectDetail() {
       )}
 
       {/* Assign reviewers panel */}
-      {(isPresidente || isAdmin) && project.status === 'asignado' && (
-        <Card className="shadow-sm border-info/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><UserPlus className="h-5 w-5 text-info" />Asignar Revisores</CardTitle>
-            <CardDescription>Selecciona {requiredEvals} evaluador(es) para la {trackLabels[project.evaluation_track ?? 'regular']?.toLowerCase()}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {deadlineWarning && <div className="rounded-lg bg-destructive/10 text-destructive border border-destructive/30 p-3 text-sm">⚠ El plazo de pre-revisión ha vencido.</div>}
-            {evaluators.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No hay evaluadores activos registrados.</p>
-            ) : (
-              <div className="space-y-2">
-                {evaluators.map(ev => (
-                  <div key={ev.id} className={cn('flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors', selectedEvaluators.includes(ev.id) ? 'border-primary bg-primary/5' : 'hover:bg-muted/50')} onClick={() => toggleEvaluator(ev.id)}>
-                    <Checkbox checked={selectedEvaluators.includes(ev.id)} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{ev.full_name}</p>
-                      <p className="text-xs text-muted-foreground">{ev.email}</p>
-                    </div>
+      {canAssign && project.status === 'asignado' && (() => {
+        const isExpedita = project.evaluation_track === 'expedita';
+        const primarioCandidates = evaluators.filter(e => !e.isExterno);
+        const secundarioCandidates = evaluators.filter(e => e.id !== primarioId);
+        return (
+          <Card className="shadow-sm border-info/30">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2"><UserPlus className="h-5 w-5 text-info" />Asignar Revisores</CardTitle>
+              <CardDescription>
+                {isExpedita
+                  ? 'Selecciona un revisor primario para la evaluación expedita.'
+                  : 'Selecciona un revisor primario y uno secundario para la evaluación regular.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {deadlineWarning && <div className="rounded-lg bg-destructive/10 text-destructive border border-destructive/30 p-3 text-sm">⚠ El plazo de pre-revisión ha vencido.</div>}
+              {evaluators.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No hay miembros del CEI activos registrados.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Revisor primario</Label>
+                    <Select value={primarioId} onValueChange={setPrimarioId}>
+                      <SelectTrigger><SelectValue placeholder="Selecciona revisor primario" /></SelectTrigger>
+                      <SelectContent>
+                        {primarioCandidates.map(ev => (
+                          <SelectItem key={ev.id} value={ev.id}>{ev.full_name} — <span className="text-muted-foreground text-xs">{ev.email}</span></SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Los miembros externos del CEI no pueden ser revisor primario.</p>
                   </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Seleccionados: {selectedEvaluators.length} / {requiredEvals}</p>
-            <Button onClick={handleAssignReviewers} disabled={actionLoading || selectedEvaluators.length !== requiredEvals} className="w-full">
-              {actionLoading ? 'Asignando...' : 'Asignar y pasar a evaluación'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+                  {!isExpedita && (
+                    <div className="space-y-2">
+                      <Label>Revisor secundario</Label>
+                      <Select value={secundarioId} onValueChange={setSecundarioId}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona revisor secundario" /></SelectTrigger>
+                        <SelectContent>
+                          {secundarioCandidates.map(ev => (
+                            <SelectItem key={ev.id} value={ev.id}>
+                              {ev.full_name}{ev.isExterno && ' (externo)'} — <span className="text-muted-foreground text-xs">{ev.email}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
+              <Button onClick={handleAssignReviewers} disabled={actionLoading || !primarioId || (!isExpedita && !secundarioId)} className="w-full">
+                {actionLoading ? 'Asignando...' : 'Asignar y pasar a evaluación'}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList className="flex-wrap">
@@ -542,7 +578,12 @@ export default function ProjectDetail() {
               ) : evaluations.map(ev => (
                 <Card key={ev.id} className="shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">Evaluación</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-base">Evaluación</CardTitle>
+                      <Badge variant="outline" className={ev.reviewer_role === 'primario' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-info/10 text-info border-info/30'}>
+                        {ev.reviewer_role === 'primario' ? 'Revisor primario' : 'Revisor secundario'}
+                      </Badge>
+                    </div>
                     {ev.submitted_at ? <Badge className="bg-success/10 text-success border-success/30" variant="outline">Enviada</Badge> : <Badge variant="outline" className="text-muted-foreground">Pendiente</Badge>}
                   </CardHeader>
                   {ev.submitted_at && (
