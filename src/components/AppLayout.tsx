@@ -13,6 +13,8 @@ const routeLabels: Record<string, string> = {
   '/projects/new': 'Nueva Solicitud',
   '/amendments/new': 'Nueva Enmienda',
   '/audits/new': 'Nueva Auditoría',
+  '/amendments': 'Enmiendas',
+  '/audits': 'Auditorías',
   '/sessions': 'Sesiones',
   '/users': 'Usuarios',
   '/reports': 'Reportes',

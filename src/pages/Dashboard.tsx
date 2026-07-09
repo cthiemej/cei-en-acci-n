@@ -36,10 +36,12 @@ interface DeadlineProject {
 }
 
 export default function Dashboard() {
-  const { role, user } = useAuth();
+  const { role, ceiCargo, user } = useAuth();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
+  const [amendmentItems, setAmendmentItems] = useState<{ id: string; code: string | null; label: string }[]>([]);
+  const [auditItems, setAuditItems] = useState<{ id: string; code: string | null; label: string }[]>([]);
   const [deadlineAlerts, setDeadlineAlerts] = useState<DeadlineProject[]>([]);
   const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
   const [recentNotifications, setRecentNotifications] = useState<{ id: string; subject: string; notification_type: string; read_at: string | null; created_at: string | null; project_id: string | null; session_id: string | null }[]>([]);
@@ -101,6 +103,32 @@ export default function Dashboard() {
 
         setActionItems(items);
         setDeadlineAlerts(alerts.sort((a, b) => a.remaining - b.remaining));
+
+        // Amendments requiring attention (secretario/presidente/admin)
+        const { data: amRows } = await supabase
+          .from('amendments')
+          .select('id, code, status')
+          .in('status', ['recibido', 'asignado']);
+        if (amRows) {
+          setAmendmentItems(amRows.map((a: any) => ({
+            id: a.id, code: a.code,
+            label: a.status === 'recibido' ? 'Enmienda pendiente de pre-revisión' : 'Enmienda pendiente de asignar revisor',
+          })));
+        }
+      }
+
+      // Audits requiring attention (vicepresidente)
+      if (ceiCargo === 'vicepresidente') {
+        const { data: auRows } = await supabase
+          .from('audits')
+          .select('id, code, status')
+          .in('status', ['solicitada', 'programada']);
+        if (auRows) {
+          setAuditItems(auRows.map((a: any) => ({
+            id: a.id, code: a.code,
+            label: a.status === 'solicitada' ? 'Auditoría pendiente de programar' : 'Auditoría pendiente de asignar evaluadores',
+          })));
+        }
       }
 
       // Fetch next scheduled session
@@ -128,7 +156,7 @@ export default function Dashboard() {
       if (notifs) setRecentNotifications(notifs as any);
     };
     fetchData();
-  }, [user, role]);
+  }, [user, role, ceiCargo]);
 
   const investigadorCards = [
     { title: 'Borradores', value: stats.borrador, icon: FileText, color: 'text-muted-foreground' },
@@ -231,6 +259,48 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <StatusBadge status={item.status ?? 'borrador'} />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Amendments requiring management */}
+      {amendmentItems.length > 0 && (
+        <Card className="shadow-sm border-warning/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertCircle className="h-5 w-5 text-warning" />Enmiendas pendientes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {amendmentItems.map(item => (
+                <Link key={item.id} to={`/amendments/${item.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.label}</p>
+                    <span className="text-xs text-muted-foreground font-mono">{item.code}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Audit items for vicepresidente */}
+      {auditItems.length > 0 && (
+        <Card className="shadow-sm border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-primary" />Auditorías pendientes (Vicepresidente)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {auditItems.map(item => (
+                <Link key={item.id} to={`/audits/${item.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.label}</p>
+                    <span className="text-xs text-muted-foreground font-mono">{item.code}</span>
+                  </div>
                 </Link>
               ))}
             </div>

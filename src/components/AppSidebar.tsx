@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, History, Repeat,
+  LayoutDashboard, FolderOpen, FilePlus, Users, Calendar, UserCheck, BarChart3, LogOut, History, Repeat, FileEdit, ClipboardCheck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useNavigate } from 'react-router-dom';
@@ -15,11 +15,15 @@ const navByMode: Record<ActiveMode, NavItem[]> = {
   investigador: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Mis Proyectos', url: '/projects', icon: FolderOpen },
+    { title: 'Mis Enmiendas', url: '/amendments', icon: FileEdit },
+    { title: 'Mis Auditorías', url: '/audits', icon: ClipboardCheck },
     { title: 'Nueva Solicitud', url: '/requests/new', icon: FilePlus },
   ],
   cei: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Proyectos', url: '/projects', icon: FolderOpen },
+    { title: 'Enmiendas', url: '/amendments', icon: FileEdit },
+    { title: 'Auditorías', url: '/audits', icon: ClipboardCheck },
     { title: 'Sesiones', url: '/sessions', icon: Calendar },
     { title: 'Asignar Revisores', url: '/assign-reviewers', icon: UserCheck },
   ],
