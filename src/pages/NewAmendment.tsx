@@ -5,18 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Upload, FileText, Save, Send, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addBusinessDays } from '@/lib/businessDays';
 import { createNotification } from '@/lib/notifications';
-
-interface ApprovedProject {
-  id: string;
-  code: string | null;
-  title: string;
-}
 
 type DocSlotType = 'carta_enmienda' | 'consentimiento_informado' | 'otro';
 
@@ -42,25 +36,12 @@ function fileValid(file: File) {
 export default function NewAmendment() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<ApprovedProject[]>([]);
-  const [projectId, setProjectId] = useState<string>('');
+  const [externalCode, setExternalCode] = useState('');
+  const [externalTitle, setExternalTitle] = useState('');
   const [carta, setCarta] = useState<File | null>(null);
   const [consents, setConsents] = useState<DocEntry[]>([]);
   const [others, setOthers] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('projects')
-      .select('id, code, title')
-      .eq('principal_investigator_id', user.id)
-      .eq('status', 'aprobado')
-      .order('code', { ascending: false })
-      .then(({ data }) => setProjects((data as ApprovedProject[]) ?? []));
-  }, [user]);
-
-  const selectedProject = projects.find((p) => p.id === projectId);
 
   const addMulti = (files: FileList | null, kind: 'consent' | 'other') => {
     if (!files) return;
@@ -99,11 +80,14 @@ export default function NewAmendment() {
     }
   };
 
-  const canSubmit = !!projectId && !!carta;
+  const codeTrim = externalCode.trim();
+  const titleTrim = externalTitle.trim();
+  const hasProject = !!codeTrim && !!titleTrim;
+  const canSubmit = hasProject && !!carta;
 
   const handleSave = async (submit: boolean) => {
-    if (!user || !projectId) {
-      toast.error('Selecciona un proyecto aprobado.');
+    if (!user || !hasProject) {
+      toast.error('Ingresa el código y el nombre del proyecto aprobado.');
       return;
     }
     if (submit && !carta) {
@@ -113,7 +97,9 @@ export default function NewAmendment() {
     setLoading(true);
     try {
       const payload: Record<string, unknown> = {
-        original_project_id: projectId,
+        original_project_id: null,
+        external_project_code: codeTrim,
+        external_project_title: titleTrim,
         requester_id: user.id,
         status: submit ? 'recibido' : 'borrador',
       };
@@ -140,14 +126,14 @@ export default function NewAmendment() {
             recipientId: s.user_id,
             notificationType: 'enmienda_recibida',
             subject: `Nueva enmienda ${data.code ?? ''} pendiente de pre-revisión`,
-            body: `Se ha recibido una solicitud de enmienda (${data.code ?? ''}) sobre el proyecto "${selectedProject?.title ?? ''}" (${selectedProject?.code ?? ''}).`,
+            body: `Se ha recibido una solicitud de enmienda (${data.code ?? ''}) sobre el proyecto "${titleTrim}" (${codeTrim}).`,
           });
         }
         await createNotification({
           recipientId: user.id,
           notificationType: 'enmienda_recibida',
           subject: `Su solicitud de enmienda ${data.code ?? ''} ha sido recibida`,
-          body: `Se ha recibido su solicitud de enmienda sobre el proyecto "${selectedProject?.title ?? ''}" (${selectedProject?.code ?? ''}).`,
+          body: `Se ha recibido su solicitud de enmienda sobre el proyecto "${titleTrim}" (${codeTrim}).`,
         });
       }
 
@@ -171,32 +157,33 @@ export default function NewAmendment() {
       <Card>
         <CardHeader>
           <CardTitle>Proyecto original</CardTitle>
-          <CardDescription>Selecciona el proyecto aprobado sobre el cual solicitas la enmienda.</CardDescription>
+          <CardDescription>Ingresa los datos del proyecto aprobado sobre el cual solicitas la enmienda.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Proyecto aprobado *</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    projects.length === 0 ? 'No tienes proyectos aprobados' : 'Selecciona un proyecto'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.code ?? '(sin código)'} — {p.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="ext-code">Número-año del proyecto aprobado *</Label>
+            <Input
+              id="ext-code"
+              value={externalCode}
+              onChange={(e) => setExternalCode(e.target.value)}
+              placeholder="Ej: CEI-2019-045"
+              maxLength={100}
+            />
           </div>
-          {selectedProject && (
+          <div className="space-y-2">
+            <Label htmlFor="ext-title">Nombre del proyecto *</Label>
+            <Input
+              id="ext-title"
+              value={externalTitle}
+              onChange={(e) => setExternalTitle(e.target.value)}
+              placeholder="Título completo del proyecto aprobado"
+              maxLength={500}
+            />
+          </div>
+          {hasProject && (
             <div className="rounded-md border bg-muted/40 p-3 text-sm">
               <span className="text-muted-foreground">Proyecto:</span>{' '}
-              <span className="font-medium">{selectedProject.title}</span>
+              <span className="font-medium">{codeTrim} — {titleTrim}</span>
             </div>
           )}
         </CardContent>
@@ -320,7 +307,7 @@ export default function NewAmendment() {
           {!canSubmit && (
             <div className="flex items-center gap-2 text-warning text-sm">
               <AlertCircle className="h-4 w-4" />
-              <span>Selecciona un proyecto y adjunta la carta de solicitud para enviar.</span>
+              <span>Ingresa los datos del proyecto y adjunta la carta de solicitud para enviar.</span>
             </div>
           )}
         </CardContent>
@@ -331,7 +318,7 @@ export default function NewAmendment() {
           Cancelar
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={loading || !projectId}>
+          <Button variant="outline" onClick={() => handleSave(false)} disabled={loading || !hasProject}>
             <Save className="h-4 w-4 mr-2" />
             Guardar borrador
           </Button>
