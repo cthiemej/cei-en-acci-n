@@ -15,7 +15,7 @@ const navByMode: Record<ActiveMode, NavItem[]> = {
   investigador: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Mis Proyectos', url: '/projects', icon: FolderOpen },
-    { title: 'Nueva Solicitud', url: '/projects/new', icon: FilePlus },
+    { title: 'Nueva Solicitud', url: '/requests/new', icon: FilePlus },
   ],
   cei: [
     { title: 'Panel', url: '/dashboard', icon: LayoutDashboard },
