@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_log: {
+      activity_log: {
         Row: {
           action: string
           created_at: string | null
