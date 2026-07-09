@@ -55,8 +55,129 @@ export type Database = {
           },
         ]
       }
+      amendments: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          original_project_id: string
+          pre_review_notes: string | null
+          reception_deadline: string | null
+          requester_id: string
+          resolution: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          original_project_id: string
+          pre_review_notes?: string | null
+          reception_deadline?: string | null
+          requester_id: string
+          resolution?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          original_project_id?: string
+          pre_review_notes?: string | null
+          reception_deadline?: string | null
+          requester_id?: string
+          resolution?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amendments_original_project_id_fkey"
+            columns: ["original_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audits: {
+        Row: {
+          audit_finding: string | null
+          code: string | null
+          created_at: string
+          funding_source: string | null
+          id: string
+          location: string | null
+          project_end_date: string | null
+          project_id: string
+          project_start_date: string | null
+          requester_id: string
+          required_documents_notes: string | null
+          resolution_summary: string | null
+          scheduled_at: string | null
+          scheduled_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          audit_finding?: string | null
+          code?: string | null
+          created_at?: string
+          funding_source?: string | null
+          id?: string
+          location?: string | null
+          project_end_date?: string | null
+          project_id: string
+          project_start_date?: string | null
+          requester_id: string
+          required_documents_notes?: string | null
+          resolution_summary?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          audit_finding?: string | null
+          code?: string | null
+          created_at?: string
+          funding_source?: string | null
+          id?: string
+          location?: string | null
+          project_end_date?: string | null
+          project_id?: string
+          project_start_date?: string | null
+          requester_id?: string
+          required_documents_notes?: string | null
+          resolution_summary?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluations: {
         Row: {
+          amendment_id: string | null
+          audit_finding: string | null
+          audit_id: string | null
           conflict_description: string | null
           created_at: string | null
           evaluator_id: string
@@ -64,7 +185,7 @@ export type Database = {
           has_conflict_of_interest: boolean | null
           id: string
           informed_consent_review: string | null
-          project_id: string
+          project_id: string | null
           recommendation: string | null
           reviewer_role: string
           risk_benefit: string | null
@@ -73,6 +194,9 @@ export type Database = {
           vulnerable_groups: string | null
         }
         Insert: {
+          amendment_id?: string | null
+          audit_finding?: string | null
+          audit_id?: string | null
           conflict_description?: string | null
           created_at?: string | null
           evaluator_id: string
@@ -80,7 +204,7 @@ export type Database = {
           has_conflict_of_interest?: boolean | null
           id?: string
           informed_consent_review?: string | null
-          project_id: string
+          project_id?: string | null
           recommendation?: string | null
           reviewer_role?: string
           risk_benefit?: string | null
@@ -89,6 +213,9 @@ export type Database = {
           vulnerable_groups?: string | null
         }
         Update: {
+          amendment_id?: string | null
+          audit_finding?: string | null
+          audit_id?: string | null
           conflict_description?: string | null
           created_at?: string | null
           evaluator_id?: string
@@ -96,7 +223,7 @@ export type Database = {
           has_conflict_of_interest?: boolean | null
           id?: string
           informed_consent_review?: string | null
-          project_id?: string
+          project_id?: string | null
           recommendation?: string | null
           reviewer_role?: string
           risk_benefit?: string | null
@@ -105,6 +232,20 @@ export type Database = {
           vulnerable_groups?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "evaluations_amendment_id_fkey"
+            columns: ["amendment_id"]
+            isOneToOne: false
+            referencedRelation: "amendments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "evaluations_evaluator_id_fkey"
             columns: ["evaluator_id"]
@@ -123,6 +264,8 @@ export type Database = {
       }
       generated_documents: {
         Row: {
+          amendment_id: string | null
+          audit_id: string | null
           created_at: string | null
           document_type: string
           generated_by: string | null
@@ -132,6 +275,8 @@ export type Database = {
           storage_path: string
         }
         Insert: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           document_type: string
           generated_by?: string | null
@@ -141,6 +286,8 @@ export type Database = {
           storage_path: string
         }
         Update: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           document_type?: string
           generated_by?: string | null
@@ -150,6 +297,20 @@ export type Database = {
           storage_path?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "generated_documents_amendment_id_fkey"
+            columns: ["amendment_id"]
+            isOneToOne: false
+            referencedRelation: "amendments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "generated_documents_generated_by_fkey"
             columns: ["generated_by"]
@@ -278,36 +439,56 @@ export type Database = {
       }
       project_documents: {
         Row: {
+          amendment_id: string | null
+          audit_id: string | null
           created_at: string | null
           document_type: string
           file_name: string
           id: string
-          project_id: string
+          project_id: string | null
           storage_path: string
           uploaded_by: string | null
           version: number | null
         }
         Insert: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           document_type: string
           file_name: string
           id?: string
-          project_id: string
+          project_id?: string | null
           storage_path: string
           uploaded_by?: string | null
           version?: number | null
         }
         Update: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           document_type?: string
           file_name?: string
           id?: string
-          project_id?: string
+          project_id?: string | null
           storage_path?: string
           uploaded_by?: string | null
           version?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_documents_amendment_id_fkey"
+            columns: ["amendment_id"]
+            isOneToOne: false
+            referencedRelation: "amendments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_documents_project_id_fkey"
             columns: ["project_id"]
@@ -442,6 +623,8 @@ export type Database = {
       }
       session_agenda_items: {
         Row: {
+          amendment_id: string | null
+          audit_id: string | null
           created_at: string | null
           description: string
           id: string
@@ -452,6 +635,8 @@ export type Database = {
           vote_result: Json | null
         }
         Insert: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           description: string
           id?: string
@@ -462,6 +647,8 @@ export type Database = {
           vote_result?: Json | null
         }
         Update: {
+          amendment_id?: string | null
+          audit_id?: string | null
           created_at?: string | null
           description?: string
           id?: string
@@ -472,6 +659,20 @@ export type Database = {
           vote_result?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "session_agenda_items_amendment_id_fkey"
+            columns: ["amendment_id"]
+            isOneToOne: false
+            referencedRelation: "amendments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_agenda_items_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "session_agenda_items_project_id_fkey"
             columns: ["project_id"]
