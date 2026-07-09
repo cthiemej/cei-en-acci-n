@@ -36,9 +36,9 @@ export const canManageSessions = (r?: Role | string | null) =>
 export const canEvaluate = (r?: Role | string | null) =>
   r === 'evaluador' || isCeiCargo(r);
 
-/** Puede asignar revisores a un proyecto (presidencia o admin). */
+/** Puede asignar revisores a un proyecto (solo presidente o secretario). */
 export const canAssignReviewers = (r?: Role | string | null) =>
-  r === 'admin' || isPresidencia(r);
+  r === 'presidente' || r === 'secretario';
 
 export const roleLabels: Record<string, string> = {
   investigador: 'Investigador',
