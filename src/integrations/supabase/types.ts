@@ -599,6 +599,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_cei_member: { Args: { _user_id: string }; Returns: boolean }
+      is_investigador: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
@@ -607,6 +609,9 @@ export type Database = {
         | "secretario"
         | "presidente"
         | "admin"
+        | "vicepresidente"
+        | "miembro_interno_cei"
+        | "miembro_externo_cei"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -740,6 +745,9 @@ export const Constants = {
         "secretario",
         "presidente",
         "admin",
+        "vicepresidente",
+        "miembro_interno_cei",
+        "miembro_externo_cei",
       ],
     },
   },
