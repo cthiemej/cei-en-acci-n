@@ -266,6 +266,48 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Amendments requiring management */}
+      {amendmentItems.length > 0 && (
+        <Card className="shadow-sm border-warning/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertCircle className="h-5 w-5 text-warning" />Enmiendas pendientes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {amendmentItems.map(item => (
+                <Link key={item.id} to={`/amendments/${item.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.label}</p>
+                    <span className="text-xs text-muted-foreground font-mono">{item.code}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Audit items for vicepresidente */}
+      {auditItems.length > 0 && (
+        <Card className="shadow-sm border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-primary" />Auditorías pendientes (Vicepresidente)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {auditItems.map(item => (
+                <Link key={item.id} to={`/audits/${item.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.label}</p>
+                    <span className="text-xs text-muted-foreground font-mono">{item.code}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Recent notifications */}
       {recentNotifications.length > 0 && (
         <Card className="shadow-sm">
