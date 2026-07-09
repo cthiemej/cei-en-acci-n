@@ -13,6 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 import { Search, Plus, Edit, UserX, UserCheck, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CEI_CARGOS, roleLabels } from '@/lib/roles';
+
+type CeiCargo = 'presidente' | 'vicepresidente' | 'secretario' | 'miembro_interno_cei' | 'miembro_externo_cei';
+const NONE_CARGO = 'ninguno';
 
 interface UserRow {
   id: string;
@@ -23,16 +27,11 @@ interface UserRow {
   is_external: boolean;
   confidentiality_signed: boolean;
   conflict_declaration_signed: boolean;
-  role: string;
+  roles: string[];
+  cargo: CeiCargo | null;
+  isAdmin: boolean;
+  isInvestigador: boolean;
 }
-
-const roleLabels: Record<string, string> = {
-  investigador: 'Investigador',
-  evaluador: 'Evaluador',
-  secretario: 'Secretario',
-  presidente: 'Presidente',
-  admin: 'Administrador',
-};
 
 export default function AdminUsers() {
   const { role } = useAuth();
@@ -44,12 +43,26 @@ export default function AdminUsers() {
 
   // Create user modal
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ full_name: '', email: '', role: 'investigador', faculty: '', is_external: false });
+  const [createForm, setCreateForm] = useState<{
+    full_name: string;
+    email: string;
+    cargo: CeiCargo | typeof NONE_CARGO;
+    isAdmin: boolean;
+    isInvestigador: boolean;
+    faculty: string;
+    is_external: boolean;
+  }>({ full_name: '', email: '', cargo: NONE_CARGO, isAdmin: false, isInvestigador: true, faculty: '', is_external: false });
   const [creating, setCreating] = useState(false);
 
   // Edit user modal
   const [editUser, setEditUser] = useState<UserRow | null>(null);
-  const [editForm, setEditForm] = useState({ role: '', faculty: '', is_active: true });
+  const [editForm, setEditForm] = useState<{
+    cargo: CeiCargo | typeof NONE_CARGO;
+    isAdmin: boolean;
+    isInvestigador: boolean;
+    faculty: string;
+    is_active: boolean;
+  }>({ cargo: NONE_CARGO, isAdmin: false, isInvestigador: false, faculty: '', is_active: true });
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
@@ -58,20 +71,31 @@ export default function AdminUsers() {
     const { data: roles } = await supabase.from('user_roles').select('user_id, role');
 
     if (profiles && roles) {
-      const roleMap = new Map<string, string>();
-      roles.forEach((r: any) => roleMap.set(r.user_id, r.role));
+      const roleMap = new Map<string, string[]>();
+      roles.forEach((r: any) => {
+        const list = roleMap.get(r.user_id) ?? [];
+        list.push(r.role);
+        roleMap.set(r.user_id, list);
+      });
 
-      const merged: UserRow[] = profiles.map((p: any) => ({
-        id: p.id,
-        full_name: p.full_name,
-        email: p.email,
-        faculty: p.faculty,
-        is_active: p.is_active ?? true,
-        is_external: p.is_external ?? false,
-        confidentiality_signed: p.confidentiality_signed ?? false,
-        conflict_declaration_signed: p.conflict_declaration_signed ?? false,
-        role: roleMap.get(p.id) ?? 'investigador',
-      }));
+      const merged: UserRow[] = profiles.map((p: any) => {
+        const userRoles = roleMap.get(p.id) ?? [];
+        const cargo = (userRoles.find(r => CEI_CARGOS.includes(r as any)) ?? null) as CeiCargo | null;
+        return {
+          id: p.id,
+          full_name: p.full_name,
+          email: p.email,
+          faculty: p.faculty,
+          is_active: p.is_active ?? true,
+          is_external: p.is_external ?? false,
+          confidentiality_signed: p.confidentiality_signed ?? false,
+          conflict_declaration_signed: p.conflict_declaration_signed ?? false,
+          roles: userRoles,
+          cargo,
+          isAdmin: userRoles.includes('admin'),
+          isInvestigador: userRoles.includes('investigador'),
+        };
+      });
       setUsers(merged);
     }
     setLoading(false);
@@ -84,7 +108,7 @@ export default function AdminUsers() {
   }
 
   const filtered = users.filter(u => {
-    if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+    if (roleFilter !== 'all' && !u.roles.includes(roleFilter)) return false;
     if (statusFilter === 'active' && !u.is_active) return false;
     if (statusFilter === 'inactive' && u.is_active) return false;
     if (search) {
@@ -94,6 +118,30 @@ export default function AdminUsers() {
     return true;
   });
 
+  // Sincroniza filas de user_roles con el conjunto deseado.
+  const syncRoles = async (userId: string, desired: string[]) => {
+    const { data: existing } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+    const current = new Set((existing ?? []).map((r: any) => r.role));
+    const target = new Set(desired);
+    const toDelete = [...current].filter(r => !target.has(r));
+    const toInsert = [...target].filter(r => !current.has(r));
+    if (toDelete.length) {
+      await supabase.from('user_roles').delete().eq('user_id', userId).in('role', toDelete as any);
+    }
+    if (toInsert.length) {
+      await supabase.from('user_roles').insert(toInsert.map(r => ({ user_id: userId, role: r as any })));
+    }
+  };
+
+  const buildDesired = (cargo: CeiCargo | typeof NONE_CARGO, isAdminFlag: boolean, isInvestigadorFlag: boolean) => {
+    const list: string[] = [];
+    if (cargo !== NONE_CARGO) list.push(cargo);
+    if (isAdminFlag) list.push('admin');
+    // Miembro externo CEI e investigador son incompatibles (enforced también por trigger).
+    if (isInvestigadorFlag && cargo !== 'miembro_externo_cei') list.push('investigador');
+    return list;
+  };
+
   const handleCreate = async () => {
     if (!createForm.full_name.trim() || !createForm.email.trim()) {
       toast.error('Nombre y email son obligatorios.');
@@ -101,8 +149,6 @@ export default function AdminUsers() {
     }
     setCreating(true);
     try {
-      // Use admin invite via edge function or supabase admin
-      // For now, create via signUp with a temp password and let user reset
       const tempPassword = crypto.randomUUID().slice(0, 16) + 'A1!';
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: createForm.email.trim(),
@@ -114,13 +160,9 @@ export default function AdminUsers() {
       });
       if (authError) throw authError;
 
-      // Update role if not investigador
-      if (createForm.role !== 'investigador' && authData.user) {
-        await supabase.from('user_roles').update({ role: createForm.role as any }).eq('user_id', authData.user.id);
-      }
-
-      // Update profile fields
       if (authData.user) {
+        const desired = buildDesired(createForm.cargo, createForm.isAdmin, createForm.isInvestigador);
+        await syncRoles(authData.user.id, desired);
         await supabase.from('profiles').update({
           faculty: createForm.faculty.trim() || null,
           is_external: createForm.is_external,
@@ -129,7 +171,7 @@ export default function AdminUsers() {
 
       toast.success('Usuario creado. Se envió invitación por email.');
       setShowCreate(false);
-      setCreateForm({ full_name: '', email: '', role: 'investigador', faculty: '', is_external: false });
+      setCreateForm({ full_name: '', email: '', cargo: NONE_CARGO, isAdmin: false, isInvestigador: true, faculty: '', is_external: false });
       await fetchUsers();
     } catch (err: any) {
       toast.error('Error: ' + err.message);
@@ -141,11 +183,8 @@ export default function AdminUsers() {
     if (!editUser) return;
     setSaving(true);
     try {
-      // Update role
-      if (editForm.role !== editUser.role) {
-        await supabase.from('user_roles').update({ role: editForm.role as any }).eq('user_id', editUser.id);
-      }
-      // Update profile
+      const desired = buildDesired(editForm.cargo, editForm.isAdmin, editForm.isInvestigador);
+      await syncRoles(editUser.id, desired);
       await supabase.from('profiles').update({
         faculty: editForm.faculty.trim() || null,
         is_active: editForm.is_active,
@@ -171,15 +210,40 @@ export default function AdminUsers() {
 
   const openEdit = (u: UserRow) => {
     setEditUser(u);
-    setEditForm({ role: u.role, faculty: u.faculty ?? '', is_active: u.is_active });
+    setEditForm({
+      cargo: u.cargo ?? NONE_CARGO,
+      isAdmin: u.isAdmin,
+      isInvestigador: u.isInvestigador,
+      faculty: u.faculty ?? '',
+      is_active: u.is_active,
+    });
   };
 
   const pendingDeclarations = (u: UserRow) => {
     const pending: string[] = [];
-    if (!u.confidentiality_signed && ['evaluador', 'secretario', 'presidente'].includes(u.role)) pending.push('Confidencialidad');
-    if (!u.conflict_declaration_signed && ['evaluador', 'secretario', 'presidente'].includes(u.role)) pending.push('Conflicto de interés');
+    if (!u.cargo) return pending;
+    if (!u.confidentiality_signed) pending.push('Confidencialidad');
+    if (!u.conflict_declaration_signed) pending.push('Conflicto de interés');
     return pending;
   };
+
+  const cargoOptions: { value: CeiCargo | typeof NONE_CARGO; label: string }[] = [
+    { value: NONE_CARGO, label: 'Sin cargo CEI' },
+    { value: 'presidente', label: 'Presidente' },
+    { value: 'vicepresidente', label: 'Vicepresidente' },
+    { value: 'secretario', label: 'Secretario' },
+    { value: 'miembro_interno_cei', label: 'Miembro interno CEI' },
+    { value: 'miembro_externo_cei', label: 'Miembro externo CEI' },
+  ];
+
+  const RolesBadges = ({ u }: { u: UserRow }) => (
+    <div className="flex flex-wrap gap-1">
+      {u.cargo && <Badge variant="secondary" className="text-xs">{roleLabels[u.cargo]}</Badge>}
+      {u.isAdmin && <Badge className="text-xs bg-primary/15 text-primary hover:bg-primary/20">Admin</Badge>}
+      {u.isInvestigador && <Badge variant="outline" className="text-xs">Investigador</Badge>}
+      {u.roles.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -204,9 +268,11 @@ export default function AdminUsers() {
               <SelectContent>
                 <SelectItem value="all">Todos los roles</SelectItem>
                 <SelectItem value="investigador">Investigador</SelectItem>
-                <SelectItem value="evaluador">Evaluador</SelectItem>
                 <SelectItem value="secretario">Secretario</SelectItem>
                 <SelectItem value="presidente">Presidente</SelectItem>
+                <SelectItem value="vicepresidente">Vicepresidente</SelectItem>
+                <SelectItem value="miembro_interno_cei">Miembro interno CEI</SelectItem>
+                <SelectItem value="miembro_externo_cei">Miembro externo CEI</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -232,7 +298,7 @@ export default function AdminUsers() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Rol</TableHead>
+                    <TableHead>Roles</TableHead>
                     <TableHead className="hidden md:table-cell">Facultad</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="hidden lg:table-cell">Declaraciones</TableHead>
@@ -249,9 +315,7 @@ export default function AdminUsers() {
                           {u.is_external && <Badge variant="outline" className="ml-2 text-xs">Externo</Badge>}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs">{roleLabels[u.role] ?? u.role}</Badge>
-                        </TableCell>
+                        <TableCell><RolesBadges u={u} /></TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{u.faculty ?? '-'}</TableCell>
                         <TableCell>
                           <Badge variant={u.is_active ? 'default' : 'destructive'} className="text-xs">
@@ -299,19 +363,13 @@ export default function AdminUsers() {
               <Label>Email *</Label>
               <Input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} placeholder="email@udp.cl" />
             </div>
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select value={createForm.role} onValueChange={v => setCreateForm({ ...createForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="investigador">Investigador</SelectItem>
-                  <SelectItem value="evaluador">Evaluador</SelectItem>
-                  <SelectItem value="secretario">Secretario</SelectItem>
-                  <SelectItem value="presidente">Presidente</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <RoleAxes
+              cargo={createForm.cargo}
+              isAdmin={createForm.isAdmin}
+              isInvestigador={createForm.isInvestigador}
+              cargoOptions={cargoOptions}
+              onChange={(patch) => setCreateForm({ ...createForm, ...patch })}
+            />
             <div className="space-y-2">
               <Label>Facultad</Label>
               <Input value={createForm.faculty} onChange={e => setCreateForm({ ...createForm, faculty: e.target.value })} placeholder="Facultad" />
@@ -333,19 +391,13 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar Usuario: {editUser?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select value={editForm.role} onValueChange={v => setEditForm({ ...editForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="investigador">Investigador</SelectItem>
-                  <SelectItem value="evaluador">Evaluador</SelectItem>
-                  <SelectItem value="secretario">Secretario</SelectItem>
-                  <SelectItem value="presidente">Presidente</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <RoleAxes
+              cargo={editForm.cargo}
+              isAdmin={editForm.isAdmin}
+              isInvestigador={editForm.isInvestigador}
+              cargoOptions={cargoOptions}
+              onChange={(patch) => setEditForm({ ...editForm, ...patch })}
+            />
             <div className="space-y-2">
               <Label>Facultad</Label>
               <Input value={editForm.faculty} onChange={e => setEditForm({ ...editForm, faculty: e.target.value })} placeholder="Facultad" />
@@ -361,6 +413,57 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function RoleAxes({
+  cargo,
+  isAdmin,
+  isInvestigador,
+  cargoOptions,
+  onChange,
+}: {
+  cargo: CeiCargo | typeof NONE_CARGO;
+  isAdmin: boolean;
+  isInvestigador: boolean;
+  cargoOptions: { value: CeiCargo | typeof NONE_CARGO; label: string }[];
+  onChange: (patch: Partial<{ cargo: CeiCargo | typeof NONE_CARGO; isAdmin: boolean; isInvestigador: boolean }>) => void;
+}) {
+  const externoBloquea = cargo === 'miembro_externo_cei';
+  return (
+    <div className="space-y-4 rounded-md border p-3 bg-muted/30">
+      <div className="space-y-2">
+        <Label>Cargo en el CEI</Label>
+        <Select value={cargo} onValueChange={(v) => {
+          const next = v as CeiCargo | typeof NONE_CARGO;
+          const patch: any = { cargo: next };
+          if (next === 'miembro_externo_cei') patch.isInvestigador = false;
+          onChange(patch);
+        }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {cargoOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Un cargo CEI a la vez (o ninguno).</p>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="axis-admin" checked={isAdmin} onCheckedChange={v => onChange({ isAdmin: v === true })} />
+        <Label htmlFor="axis-admin">Administrador del sistema</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="axis-inv"
+          checked={isInvestigador}
+          disabled={externoBloquea}
+          onCheckedChange={v => onChange({ isInvestigador: v === true })}
+        />
+        <Label htmlFor="axis-inv" className={externoBloquea ? 'text-muted-foreground' : ''}>
+          Investigador
+          {externoBloquea && <span className="ml-1 text-xs">(incompatible con "Miembro externo CEI")</span>}
+        </Label>
+      </div>
     </div>
   );
 }
