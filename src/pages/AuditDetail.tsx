@@ -20,7 +20,8 @@ import {
 } from '@/lib/notifications';
 
 interface Audit {
-  id: string; code: string | null; project_id: string; requester_id: string;
+  id: string; code: string | null; project_id: string | null; requester_id: string;
+  external_project_code: string | null; external_project_title: string | null;
   funding_source: string | null; project_start_date: string | null; project_end_date: string | null;
   status: string; scheduled_at: string | null; location: string | null;
   required_documents_notes: string | null; scheduled_by: string | null;
@@ -79,14 +80,16 @@ export default function AuditDetail() {
       supabase.from('evaluations').select('*').eq('audit_id', id),
     ]);
     if (aRes.data) {
-      const a = aRes.data as Audit;
+      const a = aRes.data as unknown as Audit;
       setAudit(a);
       setSchedAt(a.scheduled_at ? new Date(a.scheduled_at).toISOString().slice(0, 16) : '');
       setLocation(a.location ?? '');
       setReqDocs(a.required_documents_notes ?? '');
       setResSummary(a.resolution_summary ?? '');
-      const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.project_id).single();
-      if (proj) setOriginal(proj as OriginalProject);
+      if (a.project_id) {
+        const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.project_id).single();
+        if (proj) setOriginal(proj as OriginalProject);
+      }
     }
     if (eRes.data) {
       const evals = eRes.data as EvalRow[];
@@ -105,6 +108,10 @@ export default function AuditDetail() {
   const isVP = ceiCargo === 'vicepresidente';
   const isSecretario = role === 'secretario';
   const isCanResolve = ceiCargo === 'presidente' || ceiCargo === 'secretario';
+
+  const projectCode = audit?.project_id ? (original?.code ?? '') : (audit?.external_project_code ?? '');
+  const projectTitle = audit?.project_id ? (original?.title ?? '') : (audit?.external_project_title ?? '');
+  const projectLabel = projectCode && projectTitle ? `${projectCode} — ${projectTitle}` : (projectTitle || projectCode || '—');
 
   const ownEval = evaluations.find(e => e.evaluator_id === user?.id);
   const primaryEval = evaluations.find(e => e.reviewer_role === 'primario');
@@ -127,7 +134,7 @@ export default function AuditDetail() {
     if (!audit) return;
     const { error } = await supabase.from('audits').update(patch as any).eq('id', audit.id);
     if (error) throw error;
-    setAudit({ ...audit, ...patch } as Audit);
+    setAudit({ ...audit, ...patch } as unknown as Audit);
   };
 
   const handleSchedule = async () => {
@@ -143,7 +150,7 @@ export default function AuditDetail() {
         required_documents_notes: reqDocs || null,
         scheduled_by: user.id,
       });
-      notifyAuditScheduled(audit.id, audit.code ?? '', original?.title ?? '', audit.requester_id, scheduledIso, location.trim(), reqDocs).catch(console.error);
+      notifyAuditScheduled(audit.id, audit.code ?? '', projectTitle, audit.requester_id, scheduledIso, location.trim(), reqDocs).catch(console.error);
       toast.success('Auditoría agendada y notificada al investigador.');
     } catch (err: any) { toast.error(err.message); }
     setBusy(false);
@@ -161,7 +168,7 @@ export default function AuditDetail() {
       const { error } = await supabase.from('evaluations').insert(rows as any);
       if (error) throw error;
       await updateAudit({ status: 'asignada' });
-      notifyAuditEvaluatorsAssigned(audit.id, audit.code ?? '', original?.title ?? '', [primarioId, secundarioId]).catch(console.error);
+      notifyAuditEvaluatorsAssigned(audit.id, audit.code ?? '', projectTitle, [primarioId, secundarioId]).catch(console.error);
       toast.success('Evaluadores asignados.');
       await refresh();
     } catch (err: any) { toast.error(err.message); }
@@ -197,7 +204,7 @@ export default function AuditDetail() {
         session_id: selectedSession,
         audit_id: audit.id,
         item_order: (count ?? 0) + 1,
-        description: `Auditoría: ${original?.title ?? ''}`,
+        description: `Auditoría: ${projectTitle}`,
       } as any);
       if (error) throw error;
       await updateAudit({ status: 'en_sesion' });
@@ -217,7 +224,7 @@ export default function AuditDetail() {
         storage_path: `generated/audits/${audit.id}/acta_sancion_auditoria.pdf`,
         generated_by: user!.id,
       } as any);
-      notifyAuditSanction(audit.id, audit.code ?? '', original?.title ?? '', audit.requester_id, resSummary).catch(console.error);
+      notifyAuditSanction(audit.id, audit.code ?? '', projectTitle, audit.requester_id, resSummary).catch(console.error);
       toast.success('Sanción emitida.');
     } catch (err: any) { toast.error(err.message); }
     setBusy(false);
@@ -238,12 +245,15 @@ export default function AuditDetail() {
           <StatusBadge status={audit.status} />
           <Badge variant="outline">Auditoría</Badge>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Auditoría de {original?.title ?? '—'}</h1>
-        {original && (
-          <p className="text-sm text-muted-foreground">
-            Proyecto: <Link to={`/projects/${original.id}`} className="underline">{original.code} — {original.title}</Link>
-          </p>
-        )}
+        <h1 className="text-2xl font-bold text-foreground">Auditoría de {projectTitle || '—'}</h1>
+        <p className="text-sm text-muted-foreground">
+          Proyecto:{' '}
+          {original ? (
+            <Link to={`/projects/${original.id}`} className="underline">{projectLabel}</Link>
+          ) : (
+            <span>{projectLabel}</span>
+          )}
+        </p>
       </div>
 
       <Card>

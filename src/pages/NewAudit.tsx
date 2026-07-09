@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,40 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Send } from 'lucide-react';
 import { createNotification } from '@/lib/notifications';
 
-interface ApprovedProject {
-  id: string;
-  code: string | null;
-  title: string;
-}
-
 export default function NewAudit() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<ApprovedProject[]>([]);
-  const [projectId, setProjectId] = useState('');
+  const [externalCode, setExternalCode] = useState('');
+  const [externalTitle, setExternalTitle] = useState('');
   const [funding, setFunding] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('projects')
-      .select('id, code, title')
-      .eq('principal_investigator_id', user.id)
-      .eq('status', 'aprobado')
-      .order('code', { ascending: false })
-      .then(({ data }) => setProjects((data as ApprovedProject[]) ?? []));
-  }, [user]);
-
-  const selected = projects.find((p) => p.id === projectId);
-  const canSubmit = !!projectId && !!funding && !!startDate && !!endDate;
+  const codeTrim = externalCode.trim();
+  const titleTrim = externalTitle.trim();
+  const hasProject = !!codeTrim && !!titleTrim;
+  const canSubmit = hasProject && !!funding && !!startDate && !!endDate;
 
   const handleSubmit = async () => {
     if (!user || !canSubmit) return;
@@ -48,7 +32,9 @@ export default function NewAudit() {
       const { data, error } = await supabase
         .from('audits')
         .insert({
-          project_id: projectId,
+          project_id: null,
+          external_project_code: codeTrim,
+          external_project_title: titleTrim,
           requester_id: user.id,
           funding_source: funding.trim(),
           project_start_date: startDate,
@@ -69,14 +55,14 @@ export default function NewAudit() {
           recipientId: v.user_id,
           notificationType: 'auditoria_solicitada',
           subject: `Nueva solicitud de auditoría ${data.code ?? ''}`,
-          body: `Se ha solicitado una auditoría sobre el proyecto "${selected?.title ?? ''}" (${selected?.code ?? ''}). Debes agendarla desde la plataforma.`,
+          body: `Se ha solicitado una auditoría sobre el proyecto "${titleTrim}" (${codeTrim}). Debes agendarla desde la plataforma.`,
         });
       }
       await createNotification({
         recipientId: user.id,
         notificationType: 'auditoria_solicitada',
         subject: `Su solicitud de auditoría ${data.code ?? ''} ha sido recibida`,
-        body: `Se ha recibido su solicitud de auditoría sobre el proyecto "${selected?.title ?? ''}" (${selected?.code ?? ''}). Será agendada por el Vicepresidente del CEI.`,
+        body: `Se ha recibido su solicitud de auditoría sobre el proyecto "${titleTrim}" (${codeTrim}). Será agendada por el Vicepresidente del CEI.`,
       });
 
       toast.success('Solicitud de auditoría enviada.');
@@ -105,23 +91,24 @@ export default function NewAudit() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Proyecto aprobado *</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    projects.length === 0 ? 'No tienes proyectos aprobados' : 'Selecciona un proyecto'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.code ?? '(sin código)'} — {p.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="ext-code">Número-año del proyecto aprobado *</Label>
+            <Input
+              id="ext-code"
+              value={externalCode}
+              onChange={(e) => setExternalCode(e.target.value)}
+              placeholder="Ej: CEI-2019-045"
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ext-title">Nombre del proyecto *</Label>
+            <Input
+              id="ext-title"
+              value={externalTitle}
+              onChange={(e) => setExternalTitle(e.target.value)}
+              placeholder="Título completo del proyecto aprobado"
+              maxLength={500}
+            />
           </div>
 
           <div className="space-y-2">

@@ -21,7 +21,9 @@ import {
 interface Amendment {
   id: string;
   code: string | null;
-  original_project_id: string;
+  original_project_id: string | null;
+  external_project_code: string | null;
+  external_project_title: string | null;
   requester_id: string;
   status: string;
   reception_deadline: string | null;
@@ -83,12 +85,14 @@ export default function AmendmentDetail() {
       supabase.from('evaluations').select('*').eq('amendment_id', id),
     ]);
     if (aRes.data) {
-      const a = aRes.data as Amendment;
+      const a = aRes.data as unknown as Amendment;
       setAmendment(a);
       setPreNotes(a.pre_review_notes ?? '');
       setResolutionText(a.resolution ?? '');
-      const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.original_project_id).single();
-      if (proj) setOriginal(proj as OriginalProject);
+      if (a.original_project_id) {
+        const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.original_project_id).single();
+        if (proj) setOriginal(proj as OriginalProject);
+      }
     }
     if (dRes.data) setDocs(dRes.data as DocRow[]);
     if (eRes.data) {
@@ -117,6 +121,9 @@ export default function AmendmentDetail() {
   const canManage = canManageSessions(role) || isPresidencia(role);
   const isSecretario = role === 'secretario';
   const ownEval = evaluations.find(e => e.evaluator_id === user?.id);
+  const projectCode = amendment?.original_project_id ? (original?.code ?? '') : (amendment?.external_project_code ?? '');
+  const projectTitle = amendment?.original_project_id ? (original?.title ?? '') : (amendment?.external_project_title ?? '');
+  const projectLabel = projectCode && projectTitle ? `${projectCode} — ${projectTitle}` : (projectTitle || projectCode || '—');
 
   useEffect(() => {
     if (canAssign && amendment?.status === 'asignado' && evaluators.length === 0) {
@@ -182,7 +189,7 @@ export default function AmendmentDetail() {
       } as any);
       if (error) throw error;
       await updateStatus('en_evaluacion');
-      notifyAmendmentEvaluatorAssigned(amendment.id, amendment.code ?? '', original?.title ?? '', primarioId).catch(console.error);
+      notifyAmendmentEvaluatorAssigned(amendment.id, amendment.code ?? '', projectTitle, primarioId).catch(console.error);
       toast.success('Revisor asignado.');
       await refresh();
     } catch (err: any) { toast.error(err.message); }
@@ -218,7 +225,7 @@ export default function AmendmentDetail() {
         session_id: selectedSession,
         amendment_id: amendment.id,
         item_order: (count ?? 0) + 1,
-        description: `Enmienda: ${original?.title ?? ''}`,
+        description: `Enmienda: ${projectTitle}`,
       } as any);
       if (error) throw error;
       await updateStatus('en_sesion');
@@ -240,7 +247,7 @@ export default function AmendmentDetail() {
         storage_path: `generated/amendments/${amendment.id}/${docType}.pdf`,
         generated_by: user!.id,
       } as any);
-      notifyAmendmentResolution(amendment.id, amendment.code ?? '', original?.title ?? '', amendment.requester_id, resultado).catch(console.error);
+      notifyAmendmentResolution(amendment.id, amendment.code ?? '', projectTitle, amendment.requester_id, resultado).catch(console.error);
       toast.success('Resolución emitida.');
     } catch (err: any) { toast.error(err.message); }
     setBusy(false);
@@ -262,12 +269,15 @@ export default function AmendmentDetail() {
             <StatusBadge status={amendment.status} />
             <Badge variant="outline">Enmienda</Badge>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Enmienda sobre {original?.title ?? '—'}</h1>
-          {original && (
-            <p className="text-sm text-muted-foreground">
-              Proyecto original: <Link to={`/projects/${original.id}`} className="underline">{original.code} — {original.title}</Link>
-            </p>
-          )}
+          <h1 className="text-2xl font-bold text-foreground">Enmienda sobre {projectTitle || '—'}</h1>
+          <p className="text-sm text-muted-foreground">
+            Proyecto original:{' '}
+            {original ? (
+              <Link to={`/projects/${original.id}`} className="underline">{projectLabel}</Link>
+            ) : (
+              <span>{projectLabel}</span>
+            )}
+          </p>
         </div>
       </div>
 
