@@ -599,6 +599,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_cei_member: { Args: { _user_id: string }; Returns: boolean }
+      is_investigador: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
