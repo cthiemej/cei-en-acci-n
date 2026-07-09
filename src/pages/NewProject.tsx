@@ -59,6 +59,10 @@ export default function NewProject() {
     abstract: '',
     project_type: '',
     funding_source: '',
+    co_investigators: '',
+    faculty_or_center: '',
+    approval_date: '',
+    duration_months: '',
     involves_human_participants: true,
     uses_secondary_data_only: false,
   });
@@ -128,6 +132,10 @@ export default function NewProject() {
         principal_investigator_id: user.id,
         project_type: form.project_type || null,
         funding_source: form.funding_source.trim() || null,
+        co_investigators: form.co_investigators.trim() || null,
+        faculty_or_center: form.faculty_or_center.trim() || null,
+        approval_date: form.approval_date || null,
+        duration_months: form.duration_months ? parseInt(form.duration_months, 10) : null,
         involves_human_participants: form.involves_human_participants,
         uses_secondary_data_only: form.uses_secondary_data_only,
         status: submit ? 'recibido' : 'borrador',
@@ -239,6 +247,24 @@ export default function NewProject() {
                 <Label htmlFor="funding">Fuente de financiamiento</Label>
                 <Input id="funding" value={form.funding_source} onChange={(e) => setForm({ ...form, funding_source: e.target.value })} placeholder="Ej: ANID, DICYT, etc." maxLength={255} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="co-investigators">Otros investigadores</Label>
+                <Input id="co-investigators" value={form.co_investigators} onChange={(e) => setForm({ ...form, co_investigators: e.target.value })} placeholder="Nombres separados por coma" maxLength={500} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="faculty-center">Facultad o Centro *</Label>
+                <Input id="faculty-center" value={form.faculty_or_center} onChange={(e) => setForm({ ...form, faculty_or_center: e.target.value })} placeholder="Ej: Facultad de Psicología" required maxLength={255} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="approval-date">Fecha de aprobación</Label>
+                  <Input id="approval-date" type="date" value={form.approval_date} onChange={(e) => setForm({ ...form, approval_date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration-months">Duración (meses)</Label>
+                  <Input id="duration-months" type="number" min={1} value={form.duration_months} onChange={(e) => setForm({ ...form, duration_months: e.target.value })} placeholder="Ej: 24" />
+                </div>
+              </div>
             </CardContent>
           </>
         )}
@@ -340,6 +366,10 @@ export default function NewProject() {
                   <div><span className="text-muted-foreground">Resumen:</span> <span>{form.abstract.slice(0, 200)}{form.abstract.length > 200 ? '...' : ''}</span></div>
                   {form.project_type && <div><span className="text-muted-foreground">Tipo:</span> {projectTypeLabels[form.project_type]}</div>}
                   {form.funding_source && <div><span className="text-muted-foreground">Financiamiento:</span> {form.funding_source}</div>}
+                  {form.co_investigators && <div><span className="text-muted-foreground">Otros investigadores:</span> {form.co_investigators}</div>}
+                  {form.faculty_or_center && <div><span className="text-muted-foreground">Facultad o Centro:</span> {form.faculty_or_center}</div>}
+                  {form.approval_date && <div><span className="text-muted-foreground">Fecha de aprobación:</span> {form.approval_date}</div>}
+                  {form.duration_months && <div><span className="text-muted-foreground">Duración:</span> {form.duration_months} meses</div>}
                 </div>
               </div>
               <div className="rounded-lg border p-4 space-y-3">
