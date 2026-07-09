@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { canManageSessions } from '@/lib/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -64,7 +65,7 @@ export default function Dashboard() {
       });
 
       // Build action items + deadline alerts for secretario/presidente
-      if (role === 'secretario' || role === 'presidente' || role === 'admin') {
+      if (canManageSessions(role)) {
         const items: ActionProject[] = [];
         const alerts: DeadlineProject[] = [];
 
@@ -147,7 +148,7 @@ export default function Dashboard() {
     { title: 'Pendientes asignar', value: stats.asignado, icon: AlertTriangle, color: 'text-primary' },
   ];
 
-  const cards = role === 'admin' ? adminCards : (role === 'secretario' || role === 'presidente') ? secretarioCards : investigadorCards;
+  const cards = role === 'admin' ? adminCards : canManageSessions(role) ? secretarioCards : investigadorCards;
 
   return (
     <div className="space-y-6">

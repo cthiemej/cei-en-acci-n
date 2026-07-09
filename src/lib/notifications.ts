@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { CEI_CARGOS } from '@/lib/roles';
 
 interface NotificationParams {
   recipientId: string;
@@ -124,8 +125,8 @@ export async function notifyEximicion(projectId: string, projectCode: string, pr
 }
 
 export async function notifySesionConvocatoria(sessionId: string, sessionNumber: number, sessionType: string, scheduledDate: string) {
-  // Get all committee members
-  const { data: members } = await supabase.from('user_roles').select('user_id').in('role', ['evaluador', 'secretario', 'presidente']);
+  // Get all committee members (cualquier cargo CEI)
+  const { data: members } = await supabase.from('user_roles').select('user_id').in('role', CEI_CARGOS as any);
   const dateStr = new Date(scheduledDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const tipoLabel = sessionType === 'ordinaria' ? 'Ordinaria' : 'Extraordinaria';
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { canManageSessions, CEI_CARGOS } from '@/lib/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { notifySesionConvocatoria } from '@/lib/notifications';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ export default function Sessions() {
   const [newType, setNewType] = useState('ordinaria');
   const [newDate, setNewDate] = useState('');
   const [creating, setCreating] = useState(false);
-  const canManage = role === 'secretario' || role === 'presidente' || role === 'admin';
+  const canManage = canManageSessions(role);
 
   const fetchSessions = async () => {
     const { data } = await supabase
@@ -72,7 +73,7 @@ export default function Sessions() {
       if (error) throw error;
 
       // Auto-add all active committee members as attendees
-      const { data: roles } = await supabase.from('user_roles').select('user_id, role').in('role', ['evaluador', 'secretario', 'presidente']);
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role').in('role', CEI_CARGOS as any);
       if (roles && roles.length > 0) {
         const memberIds = [...new Set(roles.map(r => r.user_id))];
         const { data: activeProfiles } = await supabase.from('profiles').select('id').in('id', memberIds).eq('is_active', true);

@@ -3,6 +3,7 @@ import { generateActaAprobacion, generateActaRechazo } from '@/lib/pdfGenerator'
 import { notifyResolucion } from '@/lib/notifications';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { canManageSessions } from '@/lib/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,7 +34,7 @@ export default function SessionDetail() {
   const [agenda, setAgenda] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const canManage = role === 'secretario' || role === 'presidente' || role === 'admin';
+  const canManage = canManageSessions(role);
 
   // Add agenda item
   const [showAddItem, setShowAddItem] = useState(false);
