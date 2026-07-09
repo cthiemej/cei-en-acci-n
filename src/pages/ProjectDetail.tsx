@@ -410,36 +410,62 @@ export default function ProjectDetail() {
       )}
 
       {/* Assign reviewers panel */}
-      {(isPresidente || isAdmin) && project.status === 'asignado' && (
-        <Card className="shadow-sm border-info/30">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><UserPlus className="h-5 w-5 text-info" />Asignar Revisores</CardTitle>
-            <CardDescription>Selecciona {requiredEvals} evaluador(es) para la {trackLabels[project.evaluation_track ?? 'regular']?.toLowerCase()}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {deadlineWarning && <div className="rounded-lg bg-destructive/10 text-destructive border border-destructive/30 p-3 text-sm">⚠ El plazo de pre-revisión ha vencido.</div>}
-            {evaluators.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No hay evaluadores activos registrados.</p>
-            ) : (
-              <div className="space-y-2">
-                {evaluators.map(ev => (
-                  <div key={ev.id} className={cn('flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors', selectedEvaluators.includes(ev.id) ? 'border-primary bg-primary/5' : 'hover:bg-muted/50')} onClick={() => toggleEvaluator(ev.id)}>
-                    <Checkbox checked={selectedEvaluators.includes(ev.id)} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{ev.full_name}</p>
-                      <p className="text-xs text-muted-foreground">{ev.email}</p>
-                    </div>
+      {canAssign && project.status === 'asignado' && (() => {
+        const isExpedita = project.evaluation_track === 'expedita';
+        const primarioCandidates = evaluators.filter(e => !e.isExterno);
+        const secundarioCandidates = evaluators.filter(e => e.id !== primarioId);
+        return (
+          <Card className="shadow-sm border-info/30">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2"><UserPlus className="h-5 w-5 text-info" />Asignar Revisores</CardTitle>
+              <CardDescription>
+                {isExpedita
+                  ? 'Selecciona un revisor primario para la evaluación expedita.'
+                  : 'Selecciona un revisor primario y uno secundario para la evaluación regular.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {deadlineWarning && <div className="rounded-lg bg-destructive/10 text-destructive border border-destructive/30 p-3 text-sm">⚠ El plazo de pre-revisión ha vencido.</div>}
+              {evaluators.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No hay miembros del CEI activos registrados.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Revisor primario</Label>
+                    <Select value={primarioId} onValueChange={setPrimarioId}>
+                      <SelectTrigger><SelectValue placeholder="Selecciona revisor primario" /></SelectTrigger>
+                      <SelectContent>
+                        {primarioCandidates.map(ev => (
+                          <SelectItem key={ev.id} value={ev.id}>{ev.full_name} — <span className="text-muted-foreground text-xs">{ev.email}</span></SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Los miembros externos del CEI no pueden ser revisor primario.</p>
                   </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Seleccionados: {selectedEvaluators.length} / {requiredEvals}</p>
-            <Button onClick={handleAssignReviewers} disabled={actionLoading || selectedEvaluators.length !== requiredEvals} className="w-full">
-              {actionLoading ? 'Asignando...' : 'Asignar y pasar a evaluación'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+                  {!isExpedita && (
+                    <div className="space-y-2">
+                      <Label>Revisor secundario</Label>
+                      <Select value={secundarioId} onValueChange={setSecundarioId}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona revisor secundario" /></SelectTrigger>
+                        <SelectContent>
+                          {secundarioCandidates.map(ev => (
+                            <SelectItem key={ev.id} value={ev.id}>
+                              {ev.full_name}{ev.isExterno && ' (externo)'} — <span className="text-muted-foreground text-xs">{ev.email}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
+              <Button onClick={handleAssignReviewers} disabled={actionLoading || !primarioId || (!isExpedita && !secundarioId)} className="w-full">
+                {actionLoading ? 'Asignando...' : 'Asignar y pasar a evaluación'}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList className="flex-wrap">
