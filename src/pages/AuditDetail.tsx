@@ -20,7 +20,8 @@ import {
 } from '@/lib/notifications';
 
 interface Audit {
-  id: string; code: string | null; project_id: string; requester_id: string;
+  id: string; code: string | null; project_id: string | null; requester_id: string;
+  external_project_code: string | null; external_project_title: string | null;
   funding_source: string | null; project_start_date: string | null; project_end_date: string | null;
   status: string; scheduled_at: string | null; location: string | null;
   required_documents_notes: string | null; scheduled_by: string | null;
@@ -79,14 +80,16 @@ export default function AuditDetail() {
       supabase.from('evaluations').select('*').eq('audit_id', id),
     ]);
     if (aRes.data) {
-      const a = aRes.data as Audit;
+      const a = aRes.data as unknown as Audit;
       setAudit(a);
       setSchedAt(a.scheduled_at ? new Date(a.scheduled_at).toISOString().slice(0, 16) : '');
       setLocation(a.location ?? '');
       setReqDocs(a.required_documents_notes ?? '');
       setResSummary(a.resolution_summary ?? '');
-      const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.project_id).single();
-      if (proj) setOriginal(proj as OriginalProject);
+      if (a.project_id) {
+        const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.project_id).single();
+        if (proj) setOriginal(proj as OriginalProject);
+      }
     }
     if (eRes.data) {
       const evals = eRes.data as EvalRow[];
@@ -127,7 +130,7 @@ export default function AuditDetail() {
     if (!audit) return;
     const { error } = await supabase.from('audits').update(patch as any).eq('id', audit.id);
     if (error) throw error;
-    setAudit({ ...audit, ...patch } as Audit);
+    setAudit({ ...audit, ...patch } as unknown as Audit);
   };
 
   const handleSchedule = async () => {
