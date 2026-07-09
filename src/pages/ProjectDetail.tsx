@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { canAssignReviewers, canEvaluate, canManageSessions, isPresidencia, CEI_CARGOS } from '@/lib/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -113,11 +114,11 @@ export default function ProjectDetail() {
 
   // Fetch evaluators for assignment
   useEffect(() => {
-    if ((role === 'presidente' || role === 'admin') && project?.status === 'asignado') {
+    if (canAssignReviewers(role) && project?.status === 'asignado') {
       const fetchEvaluators = async () => {
-        const { data } = await supabase.from('user_roles').select('user_id').eq('role', 'evaluador');
+        const { data } = await supabase.from('user_roles').select('user_id').in('role', CEI_CARGOS as any);
         if (data && data.length > 0) {
-          const ids = data.map(d => d.user_id);
+          const ids = [...new Set(data.map(d => d.user_id))];
           const { data: profiles } = await supabase.from('profiles').select('id, full_name, email').in('id', ids).eq('is_active', true);
           if (profiles) setEvaluators(profiles);
         }
@@ -254,10 +255,10 @@ export default function ProjectDetail() {
   if (!project) return <div className="text-center py-16 text-muted-foreground">Proyecto no encontrado.</div>;
 
   const isSecretario = role === 'secretario';
-  const isPresidente = role === 'presidente';
+  const isPresidente = isPresidencia(role);
   const isAdmin = role === 'admin';
-  const isEvaluator = role === 'evaluador';
-  const canManage = isSecretario || isPresidente || isAdmin;
+  const isEvaluator = canEvaluate(role);
+  const canManage = canManageSessions(role);
   const ownEval = evaluations.find(e => e.evaluator_id === user?.id);
   const allEvalsSubmitted = evaluations.length > 0 && evaluations.every(e => e.submitted_at);
   const requiredEvals = project.evaluation_track === 'expedita' ? 1 : 2;
