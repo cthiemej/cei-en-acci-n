@@ -11,7 +11,9 @@ import { Plus } from 'lucide-react';
 
 interface Row {
   id: string; code: string | null; status: string; created_at: string | null;
-  scheduled_at: string | null; project_id: string;
+  scheduled_at: string | null; project_id: string | null;
+  external_project_code: string | null;
+  external_project_title: string | null;
   projects?: { code: string | null; title: string } | null;
 }
 
@@ -23,7 +25,7 @@ export default function Audits() {
 
   useEffect(() => {
     (async () => {
-      let q = supabase.from('audits').select('id, code, status, created_at, scheduled_at, project_id, projects:project_id(code, title)').order('created_at', { ascending: false });
+      let q = supabase.from('audits').select('id, code, status, created_at, scheduled_at, project_id, external_project_code, external_project_title, projects:project_id(code, title)').order('created_at', { ascending: false });
       if (isInvestigador && user) q = q.eq('requester_id', user.id);
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
       const { data } = await q;
@@ -76,7 +78,11 @@ export default function Audits() {
                 {rows.map(r => (
                   <TableRow key={r.id} className="cursor-pointer" onClick={() => window.location.assign(`/audits/${r.id}`)}>
                     <TableCell className="font-mono text-sm">{r.code ?? '-'}</TableCell>
-                    <TableCell className="max-w-md truncate">{r.projects?.code} — {r.projects?.title}</TableCell>
+                    <TableCell className="max-w-md truncate">
+                      {r.project_id
+                        ? `${r.projects?.code ?? ''} — ${r.projects?.title ?? ''}`
+                        : `${r.external_project_code ?? ''} — ${r.external_project_title ?? ''}`}
+                    </TableCell>
                     <TableCell><StatusBadge status={r.status} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.scheduled_at ? new Date(r.scheduled_at).toLocaleString('es-CL') : '-'}</TableCell>
                   </TableRow>
