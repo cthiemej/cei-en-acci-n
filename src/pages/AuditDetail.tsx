@@ -109,6 +109,10 @@ export default function AuditDetail() {
   const isSecretario = role === 'secretario';
   const isCanResolve = ceiCargo === 'presidente' || ceiCargo === 'secretario';
 
+  const projectCode = audit?.project_id ? (original?.code ?? '') : (audit?.external_project_code ?? '');
+  const projectTitle = audit?.project_id ? (original?.title ?? '') : (audit?.external_project_title ?? '');
+  const projectLabel = projectCode && projectTitle ? `${projectCode} — ${projectTitle}` : (projectTitle || projectCode || '—');
+
   const ownEval = evaluations.find(e => e.evaluator_id === user?.id);
   const primaryEval = evaluations.find(e => e.reviewer_role === 'primario');
   const primaryDone = !!primaryEval?.submitted_at;
@@ -146,7 +150,7 @@ export default function AuditDetail() {
         required_documents_notes: reqDocs || null,
         scheduled_by: user.id,
       });
-      notifyAuditScheduled(audit.id, audit.code ?? '', original?.title ?? '', audit.requester_id, scheduledIso, location.trim(), reqDocs).catch(console.error);
+      notifyAuditScheduled(audit.id, audit.code ?? '', projectTitle, audit.requester_id, scheduledIso, location.trim(), reqDocs).catch(console.error);
       toast.success('Auditoría agendada y notificada al investigador.');
     } catch (err: any) { toast.error(err.message); }
     setBusy(false);
@@ -164,7 +168,7 @@ export default function AuditDetail() {
       const { error } = await supabase.from('evaluations').insert(rows as any);
       if (error) throw error;
       await updateAudit({ status: 'asignada' });
-      notifyAuditEvaluatorsAssigned(audit.id, audit.code ?? '', original?.title ?? '', [primarioId, secundarioId]).catch(console.error);
+      notifyAuditEvaluatorsAssigned(audit.id, audit.code ?? '', projectTitle, [primarioId, secundarioId]).catch(console.error);
       toast.success('Evaluadores asignados.');
       await refresh();
     } catch (err: any) { toast.error(err.message); }
@@ -200,7 +204,7 @@ export default function AuditDetail() {
         session_id: selectedSession,
         audit_id: audit.id,
         item_order: (count ?? 0) + 1,
-        description: `Auditoría: ${original?.title ?? ''}`,
+        description: `Auditoría: ${projectTitle}`,
       } as any);
       if (error) throw error;
       await updateAudit({ status: 'en_sesion' });
@@ -220,7 +224,7 @@ export default function AuditDetail() {
         storage_path: `generated/audits/${audit.id}/acta_sancion_auditoria.pdf`,
         generated_by: user!.id,
       } as any);
-      notifyAuditSanction(audit.id, audit.code ?? '', original?.title ?? '', audit.requester_id, resSummary).catch(console.error);
+      notifyAuditSanction(audit.id, audit.code ?? '', projectTitle, audit.requester_id, resSummary).catch(console.error);
       toast.success('Sanción emitida.');
     } catch (err: any) { toast.error(err.message); }
     setBusy(false);
@@ -241,12 +245,15 @@ export default function AuditDetail() {
           <StatusBadge status={audit.status} />
           <Badge variant="outline">Auditoría</Badge>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Auditoría de {original?.title ?? '—'}</h1>
-        {original && (
-          <p className="text-sm text-muted-foreground">
-            Proyecto: <Link to={`/projects/${original.id}`} className="underline">{original.code} — {original.title}</Link>
-          </p>
-        )}
+        <h1 className="text-2xl font-bold text-foreground">Auditoría de {projectTitle || '—'}</h1>
+        <p className="text-sm text-muted-foreground">
+          Proyecto:{' '}
+          {original ? (
+            <Link to={`/projects/${original.id}`} className="underline">{projectLabel}</Link>
+          ) : (
+            <span>{projectLabel}</span>
+          )}
+        </p>
       </div>
 
       <Card>
