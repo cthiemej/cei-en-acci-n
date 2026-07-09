@@ -13,6 +13,9 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Projects from "./pages/Projects.tsx";
 import NewProject from "./pages/NewProject.tsx";
+import NewRequestType from "./pages/NewRequestType.tsx";
+import NewAmendment from "./pages/NewAmendment.tsx";
+import NewAudit from "./pages/NewAudit.tsx";
 import ProjectDetail from "./pages/ProjectDetail.tsx";
 import Sessions from "./pages/Sessions.tsx";
 import SessionDetail from "./pages/SessionDetail.tsx";
@@ -40,7 +43,10 @@ const App = () => (
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/requests/new" element={<NewRequestType />} />
               <Route path="/projects/new" element={<NewProject />} />
+              <Route path="/amendments/new" element={<NewAmendment />} />
+              <Route path="/audits/new" element={<NewAudit />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/sessions/:id" element={<SessionDetail />} />
