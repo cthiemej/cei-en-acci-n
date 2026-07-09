@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, availableModes, activeMode } = useAuth();
 
   if (loading) {
     return (
@@ -14,6 +14,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (availableModes.length > 1 && !activeMode) {
+    return <Navigate to="/select-mode" replace />;
   }
 
   return <>{children}</>;
