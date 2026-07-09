@@ -142,3 +142,52 @@ export async function notifySesionConvocatoria(sessionId: string, sessionNumber:
     }
   }
 }
+
+export async function notifyAmendmentEvaluatorAssigned(amendmentId: string, code: string, projectTitle: string, evaluatorId: string) {
+  await createNotification({
+    recipientId: evaluatorId,
+    notificationType: 'enmienda_asignacion',
+    subject: `Se le ha asignado la enmienda ${code} para evaluación`,
+    body: `Ha sido asignado como revisor de la enmienda ${code} sobre el proyecto "${projectTitle}". Por favor ingrese a la plataforma para emitir su evaluación.`,
+  });
+}
+
+export async function notifyAmendmentResolution(amendmentId: string, code: string, projectTitle: string, investigatorId: string, resultado: string) {
+  const labels: Record<string, string> = { aprobado: 'Aprobada', rechazado: 'Rechazada', pendiente: 'Pendiente de cambios' };
+  await createNotification({
+    recipientId: investigatorId,
+    notificationType: 'enmienda_resolucion',
+    subject: `Resolución de su enmienda ${code}: ${labels[resultado] ?? resultado}`,
+    body: `El Comité ha emitido resolución sobre su enmienda ${code} del proyecto "${projectTitle}": ${labels[resultado] ?? resultado}.`,
+  });
+}
+
+export async function notifyAuditScheduled(auditId: string, code: string, projectTitle: string, investigatorId: string, scheduledAt: string, location: string, requiredDocsNotes: string) {
+  const dateStr = new Date(scheduledAt).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  await createNotification({
+    recipientId: investigatorId,
+    notificationType: 'auditoria_programada',
+    subject: `Auditoría ${code} agendada`,
+    body: `Su auditoría ${code} sobre el proyecto "${projectTitle}" ha sido agendada.\n\nFecha y hora: ${dateStr}\nLugar: ${location}\n\nAntecedentes/documentos requeridos:\n${requiredDocsNotes || 'Sin observaciones adicionales.'}`,
+  });
+}
+
+export async function notifyAuditEvaluatorsAssigned(auditId: string, code: string, projectTitle: string, evaluatorIds: string[]) {
+  for (const evId of evaluatorIds) {
+    await createNotification({
+      recipientId: evId,
+      notificationType: 'auditoria_asignacion',
+      subject: `Se le ha asignado la auditoría ${code}`,
+      body: `Ha sido asignado como evaluador de la auditoría ${code} sobre el proyecto "${projectTitle}". Ingrese a la plataforma para revisar los antecedentes.`,
+    });
+  }
+}
+
+export async function notifyAuditSanction(auditId: string, code: string, projectTitle: string, investigatorId: string, resolutionSummary: string) {
+  await createNotification({
+    recipientId: investigatorId,
+    notificationType: 'auditoria_sancion',
+    subject: `Resolución de auditoría ${code}`,
+    body: `El Comité ha emitido resolución sobre la auditoría ${code} del proyecto "${projectTitle}":\n\n${resolutionSummary}`,
+  });
+}
