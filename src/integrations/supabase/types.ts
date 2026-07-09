@@ -607,6 +607,9 @@ export type Database = {
         | "secretario"
         | "presidente"
         | "admin"
+        | "vicepresidente"
+        | "miembro_interno_cei"
+        | "miembro_externo_cei"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -740,6 +743,9 @@ export const Constants = {
         "secretario",
         "presidente",
         "admin",
+        "vicepresidente",
+        "miembro_interno_cei",
+        "miembro_externo_cei",
       ],
     },
   },
