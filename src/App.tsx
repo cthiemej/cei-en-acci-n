@@ -18,7 +18,7 @@ import Sessions from "./pages/Sessions.tsx";
 import SessionDetail from "./pages/SessionDetail.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
 import AdminReports from "./pages/AdminReports.tsx";
-import AdminAudit from "./pages/AdminAudit.tsx";
+import AdminActivityLog from "./pages/AdminActivityLog.tsx";
 import SelectMode from "./pages/SelectMode.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -46,7 +46,7 @@ const App = () => (
               <Route path="/sessions/:id" element={<SessionDetail />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/reports" element={<AdminReports />} />
-              <Route path="/admin/audit" element={<AdminAudit />} />
+              <Route path="/admin/actividad" element={<AdminActivityLog />} />
               <Route path="/assign-reviewers" element={<div className="text-muted-foreground">Asignar Revisores — Próximamente</div>} />
             </Route>
             <Route path="*" element={<NotFound />} />
