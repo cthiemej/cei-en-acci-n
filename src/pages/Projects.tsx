@@ -107,7 +107,7 @@ export default function Projects() {
           <p className="text-muted-foreground text-sm mt-1">Gestión de proyectos de investigación</p>
         </div>
         {showNewButton && (
-          <Link to="/projects/new">
+          <Link to="/requests/new">
             <Button><Plus className="h-4 w-4 mr-2" />Nueva Solicitud</Button>
           </Link>
         )}
