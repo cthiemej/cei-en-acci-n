@@ -578,7 +578,12 @@ export default function ProjectDetail() {
               ) : evaluations.map(ev => (
                 <Card key={ev.id} className="shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">Evaluación</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-base">Evaluación</CardTitle>
+                      <Badge variant="outline" className={ev.reviewer_role === 'primario' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-info/10 text-info border-info/30'}>
+                        {ev.reviewer_role === 'primario' ? 'Revisor primario' : 'Revisor secundario'}
+                      </Badge>
+                    </div>
                     {ev.submitted_at ? <Badge className="bg-success/10 text-success border-success/30" variant="outline">Enviada</Badge> : <Badge variant="outline" className="text-muted-foreground">Pendiente</Badge>}
                   </CardHeader>
                   {ev.submitted_at && (
