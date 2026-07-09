@@ -85,7 +85,7 @@ export default function AmendmentDetail() {
       supabase.from('evaluations').select('*').eq('amendment_id', id),
     ]);
     if (aRes.data) {
-      const a = aRes.data as Amendment;
+      const a = aRes.data as unknown as Amendment;
       setAmendment(a);
       setPreNotes(a.pre_review_notes ?? '');
       setResolutionText(a.resolution ?? '');
