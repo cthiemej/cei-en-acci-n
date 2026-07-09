@@ -17,6 +17,10 @@ import NewRequestType from "./pages/NewRequestType.tsx";
 import NewAmendment from "./pages/NewAmendment.tsx";
 import NewAudit from "./pages/NewAudit.tsx";
 import ProjectDetail from "./pages/ProjectDetail.tsx";
+import AmendmentDetail from "./pages/AmendmentDetail.tsx";
+import AuditDetail from "./pages/AuditDetail.tsx";
+import Amendments from "./pages/Amendments.tsx";
+import Audits from "./pages/Audits.tsx";
 import Sessions from "./pages/Sessions.tsx";
 import SessionDetail from "./pages/SessionDetail.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
@@ -47,6 +51,10 @@ const App = () => (
               <Route path="/projects/new" element={<NewProject />} />
               <Route path="/amendments/new" element={<NewAmendment />} />
               <Route path="/audits/new" element={<NewAudit />} />
+              <Route path="/amendments" element={<Amendments />} />
+              <Route path="/amendments/:id" element={<AmendmentDetail />} />
+              <Route path="/audits" element={<Audits />} />
+              <Route path="/audits/:id" element={<AuditDetail />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/sessions/:id" element={<SessionDetail />} />
