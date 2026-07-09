@@ -32,9 +32,13 @@ export async function generateCertificadoRecepcion(projectId: string, userId: st
     code: project.code ?? '',
     title: project.title,
     investigator: profile?.full_name ?? '',
-    faculty: profile?.faculty ?? '',
+    faculty: project.faculty_or_center || profile?.faculty || '',
     receptionDate: formatDate(project.submitted_at),
     generatedDate: now(),
+    coInvestigators: project.co_investigators ?? undefined,
+    approvalDate: project.approval_date ? formatDate(project.approval_date) : undefined,
+    durationMonths: project.duration_months ?? null,
+    fundingSource: project.funding_source ?? undefined,
   });
 
   const blob = await pdf(element as any).toBlob();

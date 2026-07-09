@@ -553,10 +553,14 @@ export type Database = {
       projects: {
         Row: {
           abstract: string | null
+          approval_date: string | null
+          co_investigators: string | null
           code: string | null
           created_at: string | null
           deadline_extended: boolean | null
+          duration_months: number | null
           evaluation_track: string | null
+          faculty_or_center: string | null
           funding_source: string | null
           id: string
           involves_human_participants: boolean | null
@@ -573,10 +577,14 @@ export type Database = {
         }
         Insert: {
           abstract?: string | null
+          approval_date?: string | null
+          co_investigators?: string | null
           code?: string | null
           created_at?: string | null
           deadline_extended?: boolean | null
+          duration_months?: number | null
           evaluation_track?: string | null
+          faculty_or_center?: string | null
           funding_source?: string | null
           id?: string
           involves_human_participants?: boolean | null
@@ -593,10 +601,14 @@ export type Database = {
         }
         Update: {
           abstract?: string | null
+          approval_date?: string | null
+          co_investigators?: string | null
           code?: string | null
           created_at?: string | null
           deadline_extended?: boolean | null
+          duration_months?: number | null
           evaluation_track?: string | null
+          faculty_or_center?: string | null
           funding_source?: string | null
           id?: string
           involves_human_participants?: boolean | null
