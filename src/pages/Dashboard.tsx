@@ -36,10 +36,12 @@ interface DeadlineProject {
 }
 
 export default function Dashboard() {
-  const { role, user } = useAuth();
+  const { role, ceiCargo, user } = useAuth();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState({ borrador: 0, en_evaluacion: 0, aprobado: 0, total: 0, recibido: 0, asignado: 0 });
   const [actionItems, setActionItems] = useState<ActionProject[]>([]);
+  const [amendmentItems, setAmendmentItems] = useState<{ id: string; code: string | null; label: string }[]>([]);
+  const [auditItems, setAuditItems] = useState<{ id: string; code: string | null; label: string }[]>([]);
   const [deadlineAlerts, setDeadlineAlerts] = useState<DeadlineProject[]>([]);
   const [nextSession, setNextSession] = useState<{ id: string; session_number: number; scheduled_date: string; agenda_count: number } | null>(null);
   const [recentNotifications, setRecentNotifications] = useState<{ id: string; subject: string; notification_type: string; read_at: string | null; created_at: string | null; project_id: string | null; session_id: string | null }[]>([]);
@@ -101,6 +103,32 @@ export default function Dashboard() {
 
         setActionItems(items);
         setDeadlineAlerts(alerts.sort((a, b) => a.remaining - b.remaining));
+
+        // Amendments requiring attention (secretario/presidente/admin)
+        const { data: amRows } = await supabase
+          .from('amendments')
+          .select('id, code, status')
+          .in('status', ['recibido', 'asignado']);
+        if (amRows) {
+          setAmendmentItems(amRows.map((a: any) => ({
+            id: a.id, code: a.code,
+            label: a.status === 'recibido' ? 'Enmienda pendiente de pre-revisión' : 'Enmienda pendiente de asignar revisor',
+          })));
+        }
+      }
+
+      // Audits requiring attention (vicepresidente)
+      if (ceiCargo === 'vicepresidente') {
+        const { data: auRows } = await supabase
+          .from('audits')
+          .select('id, code, status')
+          .in('status', ['solicitada', 'programada']);
+        if (auRows) {
+          setAuditItems(auRows.map((a: any) => ({
+            id: a.id, code: a.code,
+            label: a.status === 'solicitada' ? 'Auditoría pendiente de programar' : 'Auditoría pendiente de asignar evaluadores',
+          })));
+        }
       }
 
       // Fetch next scheduled session
@@ -128,7 +156,7 @@ export default function Dashboard() {
       if (notifs) setRecentNotifications(notifs as any);
     };
     fetchData();
-  }, [user, role]);
+  }, [user, role, ceiCargo]);
 
   const investigadorCards = [
     { title: 'Borradores', value: stats.borrador, icon: FileText, color: 'text-muted-foreground' },
