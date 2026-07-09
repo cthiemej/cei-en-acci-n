@@ -21,7 +21,9 @@ import {
 interface Amendment {
   id: string;
   code: string | null;
-  original_project_id: string;
+  original_project_id: string | null;
+  external_project_code: string | null;
+  external_project_title: string | null;
   requester_id: string;
   status: string;
   reception_deadline: string | null;
@@ -87,8 +89,10 @@ export default function AmendmentDetail() {
       setAmendment(a);
       setPreNotes(a.pre_review_notes ?? '');
       setResolutionText(a.resolution ?? '');
-      const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.original_project_id).single();
-      if (proj) setOriginal(proj as OriginalProject);
+      if (a.original_project_id) {
+        const { data: proj } = await supabase.from('projects').select('id, code, title').eq('id', a.original_project_id).single();
+        if (proj) setOriginal(proj as OriginalProject);
+      }
     }
     if (dRes.data) setDocs(dRes.data as DocRow[]);
     if (eRes.data) {
