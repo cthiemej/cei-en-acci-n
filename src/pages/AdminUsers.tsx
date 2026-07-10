@@ -217,6 +217,7 @@ export default function AdminUsers() {
       isInvestigador: u.isInvestigador,
       faculty: u.faculty ?? '',
       is_active: u.is_active,
+      email: u.email ?? '',
     });
   };
 
