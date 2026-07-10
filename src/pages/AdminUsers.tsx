@@ -62,7 +62,8 @@ export default function AdminUsers() {
     isInvestigador: boolean;
     faculty: string;
     is_active: boolean;
-  }>({ cargo: NONE_CARGO, isAdmin: false, isInvestigador: false, faculty: '', is_active: true });
+    email: string;
+  }>({ cargo: NONE_CARGO, isAdmin: false, isInvestigador: false, faculty: '', is_active: true, email: '' });
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
@@ -181,8 +182,21 @@ export default function AdminUsers() {
 
   const handleEdit = async () => {
     if (!editUser) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const newEmail = editForm.email.trim();
+    if (!newEmail || !emailRegex.test(newEmail)) {
+      toast.error('Email inválido.');
+      return;
+    }
     setSaving(true);
     try {
+      if (newEmail !== editUser.email) {
+        const { data: fnData, error: emailErr } = await supabase.functions.invoke('admin-update-user-email', {
+          body: { userId: editUser.id, newEmail },
+        });
+        if (emailErr) throw emailErr;
+        if (fnData?.error) throw new Error(fnData.error);
+      }
       const desired = buildDesired(editForm.cargo, editForm.isAdmin, editForm.isInvestigador);
       await syncRoles(editUser.id, desired);
       await supabase.from('profiles').update({
@@ -216,6 +230,7 @@ export default function AdminUsers() {
       isInvestigador: u.isInvestigador,
       faculty: u.faculty ?? '',
       is_active: u.is_active,
+      email: u.email ?? '',
     });
   };
 
@@ -391,6 +406,16 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar Usuario: {editUser?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="email@udp.cl"
+              />
+              <p className="text-xs text-muted-foreground">Cambiar el email actualiza el correo de inicio de sesión sin requerir confirmación.</p>
+            </div>
             <RoleAxes
               cargo={editForm.cargo}
               isAdmin={editForm.isAdmin}
