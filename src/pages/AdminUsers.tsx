@@ -62,7 +62,8 @@ export default function AdminUsers() {
     isInvestigador: boolean;
     faculty: string;
     is_active: boolean;
-  }>({ cargo: NONE_CARGO, isAdmin: false, isInvestigador: false, faculty: '', is_active: true });
+    email: string;
+  }>({ cargo: NONE_CARGO, isAdmin: false, isInvestigador: false, faculty: '', is_active: true, email: '' });
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
