@@ -406,6 +406,16 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar Usuario: {editUser?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="email@udp.cl"
+              />
+              <p className="text-xs text-muted-foreground">Cambiar el email actualiza el correo de inicio de sesión sin requerir confirmación.</p>
+            </div>
             <RoleAxes
               cargo={editForm.cargo}
               isAdmin={editForm.isAdmin}
