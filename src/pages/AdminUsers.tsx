@@ -182,8 +182,21 @@ export default function AdminUsers() {
 
   const handleEdit = async () => {
     if (!editUser) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const newEmail = editForm.email.trim();
+    if (!newEmail || !emailRegex.test(newEmail)) {
+      toast.error('Email inválido.');
+      return;
+    }
     setSaving(true);
     try {
+      if (newEmail !== editUser.email) {
+        const { data: fnData, error: emailErr } = await supabase.functions.invoke('admin-update-user-email', {
+          body: { userId: editUser.id, newEmail },
+        });
+        if (emailErr) throw emailErr;
+        if (fnData?.error) throw new Error(fnData.error);
+      }
       const desired = buildDesired(editForm.cargo, editForm.isAdmin, editForm.isInvestigador);
       await syncRoles(editUser.id, desired);
       await supabase.from('profiles').update({
