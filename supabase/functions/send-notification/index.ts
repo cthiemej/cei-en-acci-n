@@ -35,17 +35,30 @@ serve(async (req) => {
   try {
     const payload = await req.json();
     notificationId = payload.notificationId;
-    recipientEmail = payload.recipientEmail;
+    const recipientId = payload.recipientId;
     subject = payload.subject;
     const body: string = payload.body ?? '';
+
+    if (!recipientId) {
+      throw new Error('recipientId es requerido');
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', recipientId)
+      .single();
+
+    if (profileError || !profile?.email) {
+      throw new Error(`No se pudo resolver el email del destinatario (recipientId: ${recipientId})`);
+    }
+
+    recipientEmail = profile.email;
 
     const gmailAddress = Deno.env.get('GMAIL_ADDRESS');
     const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
     if (!gmailAddress || !gmailAppPassword) {
       throw new Error('Faltan las credenciales GMAIL_ADDRESS o GMAIL_APP_PASSWORD');
-    }
-    if (!recipientEmail) {
-      throw new Error('recipientEmail es requerido');
     }
 
     const client = new SMTPClient({
