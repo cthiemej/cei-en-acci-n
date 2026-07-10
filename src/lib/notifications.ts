@@ -25,22 +25,15 @@ export async function createNotification(params: NotificationParams) {
     return;
   }
 
-  // Try to invoke edge function (non-blocking)
-  try {
-    const { data: profile } = await supabase.from('profiles').select('email').eq('id', params.recipientId).single();
-    if (profile) {
-      supabase.functions.invoke('send-notification', {
-        body: {
-          notificationId: data.id,
-          recipientEmail: profile.email,
-          subject: params.subject,
-          body: params.body,
-        },
-      }).catch(err => console.error('Edge function error:', err));
-    }
-  } catch (err) {
-    console.error('Error invoking send-notification:', err);
-  }
+  // Invoke edge function (non-blocking) — el edge function resuelve el email internamente con service role
+  supabase.functions.invoke('send-notification', {
+    body: {
+      notificationId: data.id,
+      recipientId: params.recipientId,
+      subject: params.subject,
+      body: params.body,
+    },
+  }).catch(err => console.error('Edge function error:', err));
 }
 
 export async function notifyProjectReceived(projectId: string, projectCode: string, projectTitle: string, investigatorId: string) {
