@@ -21,6 +21,12 @@ export default function Login() {
     setLoading(true);
 
     if (isSignUp) {
+      const emailLower = email.toLowerCase().trim();
+      if (!emailLower.endsWith('@mail.udp.cl') && !emailLower.endsWith('@gmail.com')) {
+        toast.error('Solo se permite registro con correo institucional (@mail.udp.cl) o Gmail (@gmail.com).');
+        setLoading(false);
+        return;
+      }
       const { error } = await signUp(email, password, fullName);
       if (error) {
         toast.error(error.message);
