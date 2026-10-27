@@ -11,6 +11,7 @@ import { Upload, FileText, Save, Send, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addBusinessDays } from '@/lib/businessDays';
 import { createNotification, getUserIdsByRoles } from '@/lib/notifications';
+import { storageFileName } from '@/lib/storageFileName';
 
 type DocSlotType = 'carta_enmienda' | 'consentimiento_informado' | 'otro';
 
@@ -60,13 +61,14 @@ export default function NewAmendment() {
   };
 
   const uploadDocs = async (amendmentId: string) => {
+    if (!user) throw new Error('Debes iniciar sesión para subir documentos.');
     const entries: { file: File; type: DocSlotType }[] = [];
     if (carta) entries.push({ file: carta, type: 'carta_enmienda' });
     entries.push(...consents.map((c) => ({ file: c.file, type: c.type })));
     entries.push(...others.map((c) => ({ file: c.file, type: c.type })));
 
     for (const { file, type } of entries) {
-      const path = `${user!.id}/amendments/${amendmentId}/${type}/${Date.now()}_${file.name}`;
+      const path = `${user.id}/amendments/${amendmentId}/${type}/${crypto.randomUUID()}_${storageFileName(file.name)}`;
       const { error: upErr } = await supabase.storage.from('project-files').upload(path, file);
       if (upErr) throw new Error(`Error subiendo ${file.name}: ${upErr.message}`);
       const { error: dbErr } = await supabase.from('project_documents').insert({
@@ -74,7 +76,7 @@ export default function NewAmendment() {
         document_type: type,
         file_name: file.name,
         storage_path: path,
-        uploaded_by: user!.id,
+        uploaded_by: user.id,
       } as any);
       if (dbErr) throw new Error(`Error guardando ${file.name}: ${dbErr.message}`);
     }
