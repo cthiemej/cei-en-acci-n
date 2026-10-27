@@ -120,7 +120,7 @@ export default function NewAmendment() {
         const secs = await getUserIdsByRoles(['secretario']);
         for (const secId of secs) {
           await createNotification({
-            recipientId: s.user_id,
+            recipientId: secId,
             notificationType: 'enmienda_recibida',
             subject: `Nueva enmienda ${data.code ?? ''} pendiente de pre-revisión`,
             body: `Se ha recibido una solicitud de enmienda (${data.code ?? ''}) sobre el proyecto "${titleTrim}" (${codeTrim}).`,

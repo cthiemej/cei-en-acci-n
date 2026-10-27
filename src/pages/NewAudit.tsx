@@ -49,7 +49,7 @@ export default function NewAudit() {
       const vps = await getUserIdsByRoles(['vicepresidente']);
       for (const vpId of vps) {
         await createNotification({
-          recipientId: v.user_id,
+          recipientId: vpId,
           notificationType: 'auditoria_solicitada',
           subject: `Nueva solicitud de auditoría ${data.code ?? ''}`,
           body: `Se ha solicitado una auditoría sobre el proyecto "${titleTrim}" (${codeTrim}). Debes agendarla desde la plataforma.`,
