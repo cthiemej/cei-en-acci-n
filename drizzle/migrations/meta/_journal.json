@@ -8,6 +8,13 @@
       "when": 1793140797082,
       "tag": "0000_add_get_user_ids_by_roles_function",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793144338330,
+      "tag": "0001_code_generators_security_definer",
+      "breakpoints": true
     }
   ]
 }
