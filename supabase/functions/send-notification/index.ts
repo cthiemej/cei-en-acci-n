@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeEmailAddress, normalizeAppPassword, emailErrorMessage } from './emailConfig.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,8 +25,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'Falta la configuración del servicio de notificaciones.' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   let notificationId: string | undefined;
@@ -53,13 +59,16 @@ serve(async (req) => {
       throw new Error(`No se pudo resolver el email del destinatario (recipientId: ${recipientId})`);
     }
 
-    recipientEmail = profile.email;
+    recipientEmail = normalizeEmailAddress(profile.email);
 
-    const gmailAddress = Deno.env.get('GMAIL_ADDRESS');
-    const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
-    if (!gmailAddress || !gmailAppPassword) {
+    const configuredAddress = Deno.env.get('GMAIL_ADDRESS');
+    const configuredPassword = Deno.env.get('GMAIL_APP_PASSWORD');
+    if (!configuredAddress || !configuredPassword) {
       throw new Error('Faltan las credenciales GMAIL_ADDRESS o GMAIL_APP_PASSWORD');
     }
+    const gmailAddress = normalizeEmailAddress(configuredAddress);
+    const gmailAppPassword = normalizeAppPassword(configuredPassword);
+    if (!gmailAppPassword) throw new Error('GMAIL_APP_PASSWORD está vacía.');
 
     const client = new SMTPClient({
       connection: {
@@ -70,14 +79,17 @@ serve(async (req) => {
       },
     });
 
-    await client.send({
-      from: `CEI-UDP <${gmailAddress}>`,
-      to: recipientEmail,
-      subject,
-      content: body,
-      html: toHtml(body),
-    });
-    await client.close();
+    try {
+      await client.send({
+        from: gmailAddress,
+        to: recipientEmail,
+        subject,
+        content: body,
+        html: toHtml(body),
+      });
+    } finally {
+      try { await client.close(); } catch { /* Keep the original send error. */ }
+    }
 
     console.log(`[send-notification] Enviado OK a ${recipientEmail} — asunto: ${subject}`);
 
@@ -93,7 +105,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = emailErrorMessage(error);
     console.error(`[send-notification] Error enviando a ${recipientEmail}: ${message}`);
 
     if (notificationId) {
