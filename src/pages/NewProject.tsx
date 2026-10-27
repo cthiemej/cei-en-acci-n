@@ -15,6 +15,7 @@ import { Check, Upload, FileText, AlertCircle, Info, ChevronLeft, ChevronRight, 
 import { cn } from '@/lib/utils';
 import { generateCertificadoRecepcion } from '@/lib/pdfGenerator';
 import { notifyProjectReceived } from '@/lib/notifications';
+import { storageFileName } from '@/lib/storageFileName';
 
 const STEPS = ['Datos del Proyecto', 'Clasificación Ética', 'Documentos', 'Revisión y Envío'];
 
@@ -101,9 +102,10 @@ export default function NewProject() {
   };
 
   const uploadDocuments = async (projectId: string) => {
+    if (!user) throw new Error('Debes iniciar sesión para subir documentos.');
     const entries = Object.entries(uploadedDocs);
     for (const [docType, { file, name }] of entries) {
-      const storagePath = `${user!.id}/${projectId}/${docType}/${Date.now()}_${name}`;
+      const storagePath = `${user.id}/${projectId}/${docType}/${crypto.randomUUID()}_${storageFileName(name)}`;
       const { error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(storagePath, file);
@@ -115,7 +117,7 @@ export default function NewProject() {
         document_type: docType,
         file_name: name,
         storage_path: storagePath,
-        uploaded_by: user!.id,
+        uploaded_by: user.id,
       });
 
       if (dbError) throw new Error(`Error guardando registro de ${name}: ${dbError.message}`);
