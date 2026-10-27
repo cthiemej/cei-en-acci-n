@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793140797082,
+      "tag": "0000_add_get_user_ids_by_roles_function",
+      "breakpoints": true
+    }
+  ]
+}

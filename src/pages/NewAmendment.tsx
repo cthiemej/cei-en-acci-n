@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Upload, FileText, Save, Send, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addBusinessDays } from '@/lib/businessDays';
-import { createNotification } from '@/lib/notifications';
+import { createNotification, getUserIdsByRoles } from '@/lib/notifications';
 
 type DocSlotType = 'carta_enmienda' | 'consentimiento_informado' | 'otro';
 
@@ -117,13 +117,10 @@ export default function NewAmendment() {
       await uploadDocs(data.id);
 
       if (submit) {
-        const { data: secs } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'secretario');
-        for (const s of secs ?? []) {
+        const secs = await getUserIdsByRoles(['secretario']);
+        for (const secId of secs) {
           await createNotification({
-            recipientId: s.user_id,
+            recipientId: secId,
             notificationType: 'enmienda_recibida',
             subject: `Nueva enmienda ${data.code ?? ''} pendiente de pre-revisión`,
             body: `Se ha recibido una solicitud de enmienda (${data.code ?? ''}) sobre el proyecto "${titleTrim}" (${codeTrim}).`,

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Send } from 'lucide-react';
-import { createNotification } from '@/lib/notifications';
+import { createNotification, getUserIdsByRoles } from '@/lib/notifications';
 
 export default function NewAudit() {
   const { user } = useAuth();
@@ -46,13 +46,10 @@ export default function NewAudit() {
       if (error) throw new Error(error.message);
 
       // Notify vicepresidente(s)
-      const { data: vps } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'vicepresidente');
-      for (const v of vps ?? []) {
+      const vps = await getUserIdsByRoles(['vicepresidente']);
+      for (const vpId of vps) {
         await createNotification({
-          recipientId: v.user_id,
+          recipientId: vpId,
           notificationType: 'auditoria_solicitada',
           subject: `Nueva solicitud de auditoría ${data.code ?? ''}`,
           body: `Se ha solicitado una auditoría sobre el proyecto "${titleTrim}" (${codeTrim}). Debes agendarla desde la plataforma.`,

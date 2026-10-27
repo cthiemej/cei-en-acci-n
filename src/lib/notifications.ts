@@ -10,15 +10,25 @@ interface NotificationParams {
   body: string;
 }
 
+export async function getUserIdsByRoles(roles: string[]): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_user_ids_by_roles' as any, { _roles: roles });
+  if (error) { console.error('Error obteniendo destinatarios por rol:', error); return []; }
+  return ((data as { user_id: string }[]) ?? []).map(r => r.user_id);
+}
+
 export async function createNotification(params: NotificationParams) {
-  const { data, error } = await supabase.from('notifications').insert({
+  // Generar el id en el cliente e insertar SIN .select(): el select posterior
+  // falla por RLS cuando recipient_id != auth.uid() y el usuario no es admin/secretario/presidencia.
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('notifications').insert({
+    id,
     recipient_id: params.recipientId,
     project_id: params.projectId ?? null,
     session_id: params.sessionId ?? null,
     notification_type: params.notificationType,
     subject: params.subject,
     body: params.body,
-  } as any).select('id').single();
+  } as any);
 
   if (error) {
     console.error('Error creating notification:', error);
@@ -28,7 +38,7 @@ export async function createNotification(params: NotificationParams) {
   // Invoke edge function (non-blocking) — el edge function resuelve el email internamente con service role
   supabase.functions.invoke('send-notification', {
     body: {
-      notificationId: data.id,
+      notificationId: id,
       recipientId: params.recipientId,
       subject: params.subject,
       body: params.body,
@@ -47,7 +57,7 @@ export async function notifyProjectReceived(projectId: string, projectCode: stri
   });
 
   // Notify secretario(s)
-  const { data: secretarios } = await supabase.from('user_roles').select('user_id').eq('role', 'secretario');
+  const secretarios = (await getUserIdsByRoles(['secretario'])).map(user_id => ({ user_id }));
   if (secretarios) {
     for (const s of secretarios) {
       await createNotification({
@@ -82,7 +92,7 @@ export async function notifyEvaluadorAsignado(projectId: string, projectCode: st
 }
 
 export async function notifyEvaluacionCompletada(projectId: string, projectCode: string, evaluatorName: string) {
-  const { data: secretarios } = await supabase.from('user_roles').select('user_id').eq('role', 'secretario');
+  const secretarios = (await getUserIdsByRoles(['secretario'])).map(user_id => ({ user_id }));
   if (secretarios) {
     for (const s of secretarios) {
       await createNotification({
@@ -119,7 +129,7 @@ export async function notifyEximicion(projectId: string, projectCode: string, pr
 
 export async function notifySesionConvocatoria(sessionId: string, sessionNumber: number, sessionType: string, scheduledDate: string) {
   // Get all committee members (cualquier cargo CEI)
-  const { data: members } = await supabase.from('user_roles').select('user_id').in('role', CEI_CARGOS as any);
+  const members = (await getUserIdsByRoles(CEI_CARGOS as string[])).map(user_id => ({ user_id }));
   const dateStr = new Date(scheduledDate).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const tipoLabel = sessionType === 'ordinaria' ? 'Ordinaria' : 'Extraordinaria';
 
